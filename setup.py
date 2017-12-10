@@ -10,7 +10,9 @@ with open('readme.md') as readme_file:
 
 
 requirements = [
-    'sphinx_rtd_theme>=0.2.4'
+    'sphinx_rtd_theme>=0.2.4',
+    'h5py>=2.6.0',
+    'pexpect>=4.2.1'
     # TODO: put package requirements here
 ]
 
