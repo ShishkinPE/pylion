@@ -2,6 +2,7 @@ from functools import wraps, partial
 import os
 import inspect
 from operator import itemgetter
+from .utils import _pretty_repr, _unique_id
 
 
 class SimulationError(Exception):
@@ -10,10 +11,13 @@ class SimulationError(Exception):
     """
     pass
 
+# todo I should organise it as follows. Have CfgObject class. Then subclass
+# that for Ions, Fixes etc?
+
 
 # Also for the ions that's pretty neat because I can just define whatever
-# placement fucntion I watn pretty easily. I should make an example where I
-# plot a smiley face or somethign with ions.
+# placement fucntion I want pretty easily. I should make an example where I
+# plot a smiley face or something with ions.
 class Ions:
     def __init__(self, func):
         # functions that generate ions should return a dict of
@@ -22,12 +26,31 @@ class Ions:
         # If the user adds more ions I can check the hash and change
         # the group or not
         self.func = func
+        self.ids = set()
+
+        first = inspect.getfullargspec(self.func).args[0]
+        assert first == 'id'
 
     def __call__(self, *args, **kwargs):
-        output = self.func(*args, **kwargs)
+
+        output = self.func(0, *args, **kwargs)
         items = itemgetter(*['charge', 'mass'])(output)
-        self.id = hash(items)
-        self.positions = output['positions']
+        uid = _unique_id(items)
+        if uid in self.ids:
+                raise SimulationError('Reusing atoms with same parameters.')
+        self.ids.add(uid)
+        # self.positions = output['positions']
+        func = partial(self.func, uid)
+        output = func(*args, **kwargs)
+
+        # todo this is dumb, just get rid of itemgetter
+        charge, mass = items
+
+        iontype = ['mass {:d} {:e}'.format(uid, 1.660e-27 * mass),
+                   'set type {:d} charge {:e}\n'.format(uid, 1.6e-19 * charge)]
+
+        # todo this will only work for lists or the \n after charge is enough?
+        output['code'] = iontype + output['code']
 
         return output
 
@@ -37,20 +60,27 @@ class CfgObject:
         assert ltype in ['fix', 'command', 'group']
         self.func = func
         self.type = ltype
+        # keep a set of ids to  make sure a second call to the same object
+        # is only allowed with different input arguments
         self.ids = set()
 
-        # make sure 'id' is the first argument
-        first = inspect.getfullargspec(self.func).args[0]
-        assert first == 'id'
+        # make sure 'id' is the first argument for fixes
+        if ltype == 'fix':
+            first = inspect.getfullargspec(self.func).args[0]
+            assert first == 'id'
 
     def __call__(self, *args, **kwargs):
 
-        unique_id = abs(hash(self.func) + hash(args))
-        if unique_id in self.ids:
-            raise SimulationError('Reusing a function with same parameters.')
-        self.ids.add(unique_id)
+        func = self.func
 
-        func = partial(self.func, unique_id)
+        if self.type == 'fix':
+            uid = _unique_id(self.func, args)
+            if uid in self.ids:
+                raise SimulationError('Reusing a fix with same parameters.')
+            self.ids.add(uid)
+
+            func = partial(self.func, uid)
+
         output = func(*args, **kwargs)
 
         self.timestep = output.setdefault('timestep', None)
@@ -59,14 +89,7 @@ class CfgObject:
         return output
 
     def __repr__(self):
-        # todo model it after ipython's oinspect.py pinfo()
-        lines = f'signature: {inspect.signature(self.func)}()\n'
-        # lines = f'signature: {inspect.getfullargspec(self.func)}()\n'
-        # lines += f'defaults: {self.func.__defaults__}\n'
-        lines += f'docstring: {inspect.getdoc(self.func)}\n'
-        lines += f'file:      {os.path.abspath(self.func.__module__)}\n'
-        lines += f'type:      {type(self.func)}, {self.type}'
-        return lines
+        return _pretty_repr(self.func)
 
 
 class lammps:
@@ -82,10 +105,3 @@ class lammps:
 
     def ions(func):
         return Ions(func)
-
-
-if __name__ == '__main__':
-    from functions import efield
-    efield(0, 1, 1)
-    efield(0, 1, 3)
-    efield(0, 1, 2)

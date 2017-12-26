@@ -11,8 +11,9 @@ with open('readme.md') as readme_file:
 
 requirements = [
     'sphinx_rtd_theme>=0.2.4',
-    'h5py>=2.6.0',
-    'pexpect>=4.2.1'
+    'h5py>=2.7.0',
+    'pexpect>=4.2.1',
+    'termcolor>=1.1.0'
     # TODO: put package requirements here
 ]
 
@@ -28,7 +29,7 @@ setup(
     name='pylion',
     version='0.1.0',
     description="A LAMMPS wrapper for molecular dynamics simulations of trapped ions.",
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     author="Dimitris Trypogeorgos",
     author_email='dtrypogiorgos@gmail.com',
     packages=find_packages(include=['pylion']),
