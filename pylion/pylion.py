@@ -27,6 +27,8 @@ class Simulation:
         self.domain = [1e-3, 1e-3, 1e-3]  # length, width, height
         self._ions = []
 
+        # todo should check if a fix returns timestep and update
+
         now = datetime.now()
         self.simfile = name + now.strftime('_%Y%m%d_%H%M.h5')
 

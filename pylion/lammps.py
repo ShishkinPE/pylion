@@ -67,53 +67,9 @@ class Ions:
         return output
 
 
-# todo the way to only have CfgObject and keep it configurable so I can for
-# example add iontype as in the Ions class, is to add **kwars to __init__ and
-# add anything I pass to that to odict output. But what about if I want to
-# evaluate the function to know something? I should really just be doing that
-# on __call__. Maybe subclassing is the way to go.
-
-class CfgObject:
-    def __init__(self, func, ltype):
-        assert ltype in ['fix', 'command', 'group']
-        self.func = func
-        self.type = ltype
-        # self.odict = {}
-        # todo change ltype to lmp_type
-        # keep a set of ids to  make sure a second call to the same object
-        # is only allowed with different input arguments
-        self.ids = set()
-        update_wrapper(self, func)
-
-        # make sure 'id' is the first argument for fixes
-        # if ltype == 'fix':
-        #     first = inspect.getfullargspec(self.func).args[0]
-        #     assert first == 'id'
-
-    def __call__(self, *args, **kwargs):
-
-        func = self.func
-
-        if self.type == 'fix':
-            uid = _unique_id(self.func, args)
-            if uid in self.ids:
-                raise SimulationError('Reusing a fix with same parameters.')
-            self.ids.add(uid)
-
-            func = partial(self.func, uid)
-
-        output = func(*args, **kwargs)
-
-        self.timestep = output.setdefault('timestep', None)
-        self.code = output['code']
-
-        return output
-
-    def __repr__(self):
-        # todo define pretty_repr as a decorator
-        return _pretty_repr(self.func)
-
-
+# I could allow for id to be any positional argument but for now I'll keep it
+# as mandatory leftmost
+# todo change assertion errors to something meaningful
 def validate_id(func):
     @wraps(func)
     def wrapper(*args):
@@ -124,16 +80,57 @@ def validate_id(func):
     return wrapper
 
 
+# def returns(*keys):
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args):
+#             odict = func(*args)
+#             odict_keys = odict.keys()
+#             for key in keys:
+#                 assert key in odict_keys
+#             return odict
+#         return wrapper
+#     return decorator
+
+
+class CfgObject:
+    def __init__(self, func, lmp_type, required_keys=None):
+
+        self.func = func
+
+        # use default keys and update if there is anything else
+        self.odict = dict.fromkeys(('code', 'type'))
+        if required_keys:
+            self.odict.update(dict.fromkeys(required_keys))
+
+        self.odict.update({'type': lmp_type})
+
+        # keep a set of ids to  make sure a second call to the same object
+        # is only allowed with different input arguments
+        self.ids = set()
+
+        # add dunder attrs from func
+        update_wrapper(self, func)
+
+    def __call__(self, *args, **kwargs):
+
+        uid = _unique_id(self.func, args)
+        if uid in self.ids:
+            raise SimulationError('Reusing a fix with same parameters.')
+        self.ids.add(uid)
+
+        func = partial(self.func, uid)
+        self.odict.update(func(*args, **kwargs))
+
+        return self.odict
+
+    def __repr__(self):
+        # todo define pretty_repr as a decorator?
+        return _pretty_repr(self.func)
+
+
 class lammps:
-    # do it like so. A generic dict key validator
-    # maybe also validate that the first argument is id with this?
-    # or go all the way and validate the values as well, schema-like?
-    # https://stackoverflow.com/questions/43950932/python-decorator-validation
-    # https://www.pythoncentral.io/validate-python-function-parameters-and-return-types-with-decorators/
-    # https://stackoverflow.com/questions/15299878/how-to-use-python-decorators-to-check-function-arguments
-    # https://pypi.python.org/pypi/pyvalidate/1.3.1 only does input but I like its syntax
-    # @validate(<str1>, <str2>, ...)
-    # or name it @returns()
+
     @validate_id
     def fix(func):
         return CfgObject(func, 'fix')

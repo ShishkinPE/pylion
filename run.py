@@ -2,7 +2,7 @@ from pylion.functions import efield, place_ions
 from pylion.pylion import Simulation
 
 ef = efield(0, 1, 1)
-print(efield.__name__)
+# print(efield)
 # # print(ef.keys())
 # # Need to make sure I consumer these before they are overwritten.
 # # Have I done this properly?
