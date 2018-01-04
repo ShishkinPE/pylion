@@ -10,6 +10,14 @@ from datetime import datetime
 
 # I should just keep everything as lists of dicts. Easy to use, easy to extend.
 
+# How to append to a decorator. I can have a single list with all simulation
+# elements rather than appending different ions, fixes etc. The user doesn't
+# really need to keep track of that and I can add the type to the dict returnd
+# by the functions if I want to know what they all are in the Simulation class.
+
+# Simulation() will just be a list of dicts then. Give it an add() function
+# or just use append?
+
 
 class Simulation:
 
