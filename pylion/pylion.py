@@ -1,9 +1,7 @@
 import h5py
 from .lammps import SimulationError
 from datetime import datetime
-
-# import inspect
-# import Path
+from collections import UserList
 
 # First thing to do now is see if I can correctly generate domain and ions
 # Start working on the Simulation class. Then I'll sort out the cfgobjects.
@@ -19,13 +17,14 @@ from datetime import datetime
 # or just use append?
 
 
-class Simulation:
+class Simulation(UserList):
+    # subclassing from UserList gives access to self.data attr
 
     def __init__(self, name='pylion'):
+        super().__init__()
         self.executable = 'lammps'
         self.timestep = 1e-6
         self.domain = [1e-3, 1e-3, 1e-3]  # length, width, height
-        self._ions = []
 
         # todo should check if a fix returns timestep and update
 
@@ -43,16 +42,22 @@ class Simulation:
         with h5py.File(self.simfile, 'w') as f:
             f.attrs.update(attrs)
 
-    @property
-    def ions(self):
-        return self._ions
+    # todo subclass a couple of list methods like index, append etc
+    # index to find using uid
+    # append to check for data structures
+    # del to unfix with using uid
+    # sort if we use priority keys
 
-    @ions.setter
-    def ions(self, ions):
-        # self._execwarning()
-
-        self._ions.append(ions['code'])
-        # save them to the h5 file or just wait to save the .lammps file?
+    def __contains__(self, this):
+        answer = False
+        for odict in self.data:
+            try:
+                if odict['uid'] == this:
+                    answer = True
+                    break
+            except KeyError:
+                pass
+        return answer
 
 
 

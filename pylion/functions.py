@@ -27,7 +27,7 @@ def place_ions(uid, ions):
     charge = ions[1]
     x, y, z = ions[2:]
 
-    lines = ['\n# Placing Individual Atoms...']
+    lines = ['\n# Placing Individual Ions...']
 
     for i, j, k in zip([x], [y], [z]):
         lines.append(f'create_atoms {uid} single {i:e} {j:e} {k:e} units box')

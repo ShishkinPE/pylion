@@ -1,12 +1,12 @@
 import inspect
 import os
 from termcolor import colored
+import functools
+
 
 # or just use https://prettyprinter.readthedocs.io/en/latest/ instead of doing
 # manual string formatting.
 # https://tommikaikkonen.github.io/introducing-prettyprinter-for-python/
-
-
 def _pretty_repr(func):
     # todo model it after ipython's oinspect.py pinfo()
     title = colored('signature', 'red')
@@ -20,6 +20,32 @@ def _pretty_repr(func):
     title = colored('type', 'red')
     lines += f'{title}:      {type(func)}\n'
     return lines
+
+
+# I could allow for id to be any positional argument but for now I'll keep it
+# as mandatory leftmost
+def validate_id(func):
+    @functools.wraps(func)
+    def wrapper(*args):
+        f = args[0]
+        # check that the first argument of the pass function is 'uid'
+        if not inspect.getfullargspec(f).args[0] == 'uid':
+            raise SimulationError("First argument needs to be 'uid'.")
+        return func(*args)
+    return wrapper
+
+
+# def returns(*keys):
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args):
+#             odict = func(*args)
+#             odict_keys = odict.keys()
+#             for key in keys:
+#                 assert key in odict_keys
+#             return odict
+#         return wrapper
+#     return decorator
 
 
 def _unique_id(*args):
