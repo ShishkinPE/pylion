@@ -30,52 +30,52 @@ def validkeys():
 # Also for the ions that's pretty neat because I can just define whatever
 # placement fucntion I want pretty easily. I should make an example where I
 # plot a smiley face or something with ions.
-class Ions:
-    def __init__(self, func):
-        # functions that generate ions should return a dict of
-        # charge, mass, positions.
-        # then I can hash charge and mass to decide on a group id.
-        # If the user adds more ions I can check the hash and change
-        # the group or not
-        self.func = func
-        self.ids = set()
+# class Ions2:
+#     def __init__(self, func):
+#         # functions that generate ions should return a dict of
+#         # charge, mass, positions.
+#         # then I can hash charge and mass to decide on a group id.
+#         # If the user adds more ions I can check the hash and change
+#         # the group or not
+#         self.func = func
+#         self.ids = set()
 
-        first = inspect.getfullargspec(self.func).args[0]
-        assert first == 'id'
+#         first = inspect.getfullargspec(self.func).args[0]
+#         assert first == 'id'
 
-    def __call__(self, *args, **kwargs):
+#     def __call__(self, *args, **kwargs):
 
-        output = self.func(0, *args, **kwargs)
-        items = itemgetter(*['charge', 'mass'])(output)
-        uid = _unique_id(items)
-        if uid in self.ids:
-                raise SimulationError('Reusing ions with same parameters.')
-        self.ids.add(uid)
-        # self.positions = output['positions']
-        func = partial(self.func, uid)
-        output = func(*args, **kwargs)
+#         output = self.func(0, *args, **kwargs)
+#         items = itemgetter(*['charge', 'mass'])(output)
+#         uid = _unique_id(items)
+#         if uid in self.ids:
+#                 raise SimulationError('Reusing ions with same parameters.')
+#         self.ids.add(uid)
+#         # self.positions = output['positions']
+#         func = partial(self.func, uid)
+#         output = func(*args, **kwargs)
 
-        # todo this is dumb, just get rid of itemgetter
-        charge, mass = items
+#         # todo this is dumb, just get rid of itemgetter
+#         charge, mass = items
 
-        iontype = ['mass {:d} {:e}'.format(uid, 1.660e-27 * mass),
-                   'set type {:d} charge {:e}\n'.format(uid, 1.6e-19 * charge)]
+#         iontype = ['mass {:d} {:e}'.format(uid, 1.660e-27 * mass),
+#                    'set type {:d} charge {:e}\n'.format(uid, 1.6e-19 * charge)]
 
-        # todo this will only work for lists or the \n after charge is enough?
-        output['code'] = iontype + output['code']
+#         # todo this will only work for lists or the \n after charge is enough?
+#         output['code'] = iontype + output['code']
 
-        return output
+#         return output
 
 
 # I could allow for id to be any positional argument but for now I'll keep it
 # as mandatory leftmost
-# todo change assertion errors to something meaningful
 def validate_id(func):
     @wraps(func)
     def wrapper(*args):
         f = args[0]
-        # check that the first argument of the pass function is 'id'
-        assert inspect.getfullargspec(f).args[0] == 'id'
+        # check that the first argument of the pass function is 'uid'
+        if not inspect.getfullargspec(f).args[0] == 'uid':
+            raise SimulationError("First argument needs to be 'uid'.")
         return func(*args)
     return wrapper
 
@@ -114,10 +114,13 @@ class CfgObject:
 
     def __call__(self, *args, **kwargs):
 
-        uid = _unique_id(self.func, args)
+        # uid = _unique_id(self.func, args)
+        uid = id((self.func,) + args)
         if uid in self.ids:
-            raise SimulationError('Reusing a fix with same parameters.')
+            lmp_type = self.odict['type']
+            raise SimulationError(f'Reusing {lmp_type} with same parameters.')
         self.ids.add(uid)
+        self.odict['uid'] = uid
 
         func = partial(self.func, uid)
         self.odict.update(func(*args, **kwargs))
@@ -127,6 +130,25 @@ class CfgObject:
     def __repr__(self):
         # todo define pretty_repr as a decorator?
         return _pretty_repr(self.func)
+
+
+class Ions(CfgObject):
+    def __init__(self, func, required_keys=None):
+        super().__init__(func, 'ions', required_keys=required_keys)
+
+    def __call__(self, *args, **kwargs):
+        self.odict = super().__call__(*args, **kwargs)
+
+        uid = self.odict['uid']
+        charge, mass = self.odict['charge'], self.odict['mass']
+
+        iontype = [f'mass {uid} {1.660e-27*mass:e}',
+                   f'set type {uid} charge {1.6e-19*charge:e}\n']
+
+        # todo this will only work for lists or the \n after charge is enough?
+        self.odict['code'] = iontype + self.odict['code']
+
+        return self.odict
 
 
 class lammps:
@@ -141,5 +163,6 @@ class lammps:
     def group(func):
         return CfgObject(func, 'group')
 
+    @validate_id
     def ions(func):
-        return Ions(func)
+        return Ions(func, required_keys=['charge', 'mass'])

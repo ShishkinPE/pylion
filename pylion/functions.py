@@ -2,7 +2,7 @@ from .lammps import lammps
 
 
 @lammps.fix
-def efield(id, ex, ey, ez):
+def efield(uid, ex, ey, ez):
     """EFIELD Adds a uniform, time-independent e-field to the simulation.
     Ex, Ey, Ez are the magnitudes of the electric field in V/m.
 
@@ -15,13 +15,13 @@ def efield(id, ex, ey, ez):
     """
 
     lines = ['# Static E-field',
-             f'fix {id:d} all efield {ex:e} {ey:e} {ez:e}']
+             f'fix {uid} all efield {ex:e} {ey:e} {ez:e}']
 
     return {'code': lines}
 
 
 @lammps.ions
-def place_ions(id, ions):
+def place_ions(uid, ions):
 
     mass = ions[0]
     charge = ions[1]
@@ -30,8 +30,7 @@ def place_ions(id, ions):
     lines = ['\n# Placing Individual Atoms...']
 
     for i, j, k in zip([x], [y], [z]):
-        lines.append('create_atoms {:d} single {:e} {:e} {:e} units box'.
-                     format(id, i, j, k))
+        lines.append(f'create_atoms {uid} single {i:e} {j:e} {k:e} units box')
 
     # let's say for now each atom is a dixt of charge, mass, position
 

@@ -23,4 +23,13 @@ def _pretty_repr(func):
 
 
 def _unique_id(*args):
-    return abs(hash(args))
+    # this is mainly to deal with negative numbers
+    return hex(hash(args) & (2**64-1))[2:]
+
+
+# for ideas for arbitrary base look here
+# https://code.activestate.com/recipes/65212-convert-from-decimal-to-any-base-number/
+def base10toN(num, n):
+    word = "0123456789abcdefghijklmnopqrstuvwxyz"
+    return ((num == 0) and "0") or (base10toN(num // n, n).strip("0") +
+                                    word[:n][num % n])
