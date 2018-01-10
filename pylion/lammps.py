@@ -3,8 +3,7 @@ import functools
 
 
 class SimulationError(Exception):
-    """
-    Custom error class for Simulation.
+    """Custom error class for Simulation.
     """
     pass
 
@@ -54,6 +53,7 @@ class CfgObject:
         return _pretty_repr(self.func)
 
 
+# ion function return charge, mass, positions
 class Ions(CfgObject):
 
     def __call__(self, *args, **kwargs):
@@ -62,11 +62,15 @@ class Ions(CfgObject):
         uid = self.odict['uid']
         charge, mass = self.odict['charge'], self.odict['mass']
 
-        iontype = [f'mass {uid} {1.660e-27*mass:e}',
-                   f'set type {uid} charge {1.6e-19*charge:e}\n']
+        lines = [f'mass {uid} {1.660e-27*mass:e}',
+                 f'set type {uid} charge {1.6e-19*charge:e}\n']
 
-        # todo this will only work for lists or the \n after charge is enough?
-        self.odict['code'] = iontype + self.odict['code']
+        lines.append('\n# Placing Individual Ions...\n')
+
+        for x, y, z in self.odict['positions']:
+            lines.append(f'create_atoms {uid} single {x:e} {y:e} {z:e} units box')
+
+        self.odict.update({'code': lines})
 
         return self.odict
 
@@ -85,4 +89,4 @@ class lammps:
 
     @validate_id
     def ions(func):
-        return Ions(func, 'ions', required_keys=['charge', 'mass'])
+        return Ions(func, 'ions', required_keys=['charge', 'mass', 'positions'])

@@ -1,6 +1,5 @@
 import h5py
 from .lammps import SimulationError
-# from collections import UserList
 
 
 class Simulation(list):
@@ -41,10 +40,9 @@ class Simulation(list):
         return self._uids.index(this['uid'])
 
     def remove(self, this):
-        # use del for actually deleting elements of the list usign a slice
-        uid = this['uid']
-        code = ['\n#Deleting a fix',
-                f'unfix {uid}\n']
+        # use del if you really want to delete something or better yet don't
+        # add it to the simulations in the first place
+        code = ['\n#Deleting a fix', f"unfix {this['uid']}\n"]
         self.append({'code': code})
 
     def sort(self):
