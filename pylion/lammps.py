@@ -1,13 +1,5 @@
-from .utils import _pretty_repr, validate_id
+from .utils import _pretty_repr, validate_id, validate_vars
 import functools
-
-
-class SimulationError(Exception):
-    """Custom error class for Simulation.
-    """
-    pass
-
-# todo change to f-strings
 
 
 # Also for the ions that's pretty neat because I can just define whatever
@@ -19,6 +11,7 @@ class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
 
         self.func = func
+        self._partial = False
 
         # use default keys and update if there is anything else
         self.odict = dict.fromkeys(('code', 'type'))
@@ -36,6 +29,8 @@ class CfgObject:
 
     def __call__(self, *args, **kwargs):
 
+        func = self.func
+
         # uid = _unique_id(self.func, args)
         uid = id((self.func,) + args)
         if uid in self.ids:
@@ -44,7 +39,8 @@ class CfgObject:
         self.ids.add(uid)
         self.odict['uid'] = uid
 
-        func = functools.partial(self.func, uid)
+        if self._partial:
+            func = functools.partial(self.func, uid)
         self.odict.update(func(*args, **kwargs))
 
         return self.odict
@@ -75,6 +71,32 @@ class Ions(CfgObject):
         return self.odict
 
 
+class Variable(CfgObject):
+
+    def __call__(self, *args, **kwargs):
+        # only support fix type variables
+        # var type varibales are easier to add with custom code
+
+        vs = kwargs['variables']
+        allowed = {'id', 'x', 'y', 'z', 'vx', 'vy', 'vz'}
+        if not set(vs).issubset(allowed):
+            raise SimulationError(f'Use only {allowed} variables.')
+
+        self.odict = super().__call__(*args, **kwargs)
+        # I can look for the words fix or variable in code to see what type it is
+
+        pre = 'f_'
+        if self.odict['type'].endswith('var'):
+            pre = 'v_'
+
+        name = self.odict['uid']
+        output = ' '.join([f'{pre}{name}[{i}]' for i in range(1, 4)])
+
+        self.odict.update({'output': output})
+
+        return self.odict
+
+
 class lammps:
 
     @validate_id
@@ -84,8 +106,15 @@ class lammps:
     def command(func):
         return CfgObject(func, 'command')
 
-    def group(func):
-        return CfgObject(func, 'group')
+    # def group(func):
+    #     return CfgObject(func, 'group')
+
+    def variable(vtype):
+        @validate_id
+        # @validate_vars  # need kwarg variables
+        def decorator(func):
+            return Variable(func, f'variable {vtype}', required_keys=['output'])
+        return decorator
 
     @validate_id
     def ions(func):

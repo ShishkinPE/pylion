@@ -4,6 +4,14 @@ from termcolor import colored
 import functools
 
 
+class SimulationError(Exception):
+    """Custom error class for Simulation.
+    """
+    pass
+
+# todo change to f-strings
+
+
 # or just use https://prettyprinter.readthedocs.io/en/latest/ instead of doing
 # manual string formatting.
 # https://tommikaikkonen.github.io/introducing-prettyprinter-for-python/
@@ -31,6 +39,21 @@ def validate_id(func):
         # check that the first argument of the pass function is 'uid'
         if not inspect.getfullargspec(f).args[0] == 'uid':
             raise SimulationError("First argument needs to be 'uid'.")
+
+        cfg = func(*args)
+        cfg._partial = True
+        return cfg
+    return wrapper
+
+
+def validate_vars(func):
+    @functools.wraps(func)
+    def wrapper(*args):
+        f = args[0]
+        # check that the first argument of the pass function is 'uid'
+        if 'variables' not in inspect.getfullargspec(f).args:
+            raise SimulationError("Could not find 'variables' kwarg.")
+
         return func(*args)
     return wrapper
 

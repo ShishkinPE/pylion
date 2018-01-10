@@ -50,6 +50,7 @@ def createioncloud(uid, ions, radius, number):
 
     return ions
 
+
 @lammps.command
 def evolve(steps):
 
@@ -57,6 +58,7 @@ def evolve(steps):
              f'run {steps:d}\n']
 
     return {'code': lines}
+
 
 @lammps.command
 def thermalvelocities(temperature, zerototalmomentum=True):
@@ -71,6 +73,7 @@ def thermalvelocities(temperature, zerototalmomentum=True):
 
     return {'code': lines}
 
+
 @lammps.command
 def minimise(etol, ftol, maxiter, maxeval, maxdist):
     # todo give some defaults here
@@ -81,6 +84,7 @@ def minimise(etol, ftol, maxiter, maxeval, maxdist):
              f'minimize {etol:e} {ftol:e} {maxiter:d} {maxeval:d}\n']
 
     return {'code': lines}
+
 
 @lammps.fix
 def ionneutralheating(uid, ions, rate):
@@ -98,6 +102,7 @@ def ionneutralheating(uid, ions, rate):
 
     return {'code': lines}
 
+
 @lammps.fix
 def langevinbath(uid, temperature, dampingtime):
 
@@ -105,6 +110,7 @@ def langevinbath(uid, temperature, dampingtime):
              f'fix {uid} all langevin {temperature:e} {temperature:e} {dampingtime:e} 1337\n']
 
     return {'code': lines}
+
 
 @lammps.fix
 def lasercool(uid, ions, k):
@@ -130,10 +136,10 @@ def _rftrap(uid, trap):
     radius = trap['radius']
     length = trap['length']
     kappa = trap['kappa']
-    anisotropy = getattr(trap, anisotropy, 1)
-    offset = getattr(trap, offset, (0, 0))
+    anisotropy = trap.get('anisotropy', 1)
+    offset = trap.get('offset', (0, 0))
 
-    odict['timestep'] = 1 / max(trap['frequency']) / 20
+    odict['timestep'] = 1 / np.max(trap['frequency']) / 20
 
     lines = [f'\n# Creating a Linear Paul Trap... (fixID={uid})',
              f'variable endCapV{uid}\t\tequal {ev:e}',
@@ -142,11 +148,16 @@ def _rftrap(uid, trap):
              f'variable geomC{uid}\t\tequal {kappa:e}',
              '\n# Define frequency components.']
 
-    # todo if iter
-    voltages = list[trap['voltage']]
-    freqs = list[trap['frequency']]
+    voltages = []
+    freqs = []
+    if hasattr(trap['voltage'], '__iter__'):
+        voltages.extend(trap['voltage'])
+        freqs.extend(trap['frequency'])
+    else:
+        voltages.append(trap['voltage'])
+        freqs.append(trap['frequency'])
 
-    for i, v, f in enumerate(zip(voltages, freqs)):
+    for i, (v, f) in enumerate(zip(voltages, freqs)):
         lines.append(f'variable oscVx{uid}{i:d}\t\tequal {v:e}')
         lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy:e}')
         lines.append(f'variable phase{uid}{i:d}\t\tequal "{2*np.pi*f:e} * step*dt"')
@@ -171,14 +182,14 @@ def _rftrap(uid, trap):
     if offset[1] == 0:
         ypos = 'y'
 
-    for i in enumerate(voltages):
+    for i, _ in enumerate(voltages):
         xc.append(f'v_oscConstx{uid}{i:d} * cos(v_phase{uid}{i:d}) * {xpos}')
         yc.append(f'v_oscConsty{uid}{i:d} * cos(v_phase{uid}{i:d}) * -{ypos}')
 
     xc = ' + '.join(xc)
     yc = ' + '.join(yc)
 
-    lines.append(f'variable oscEX{uid} atom "{xc} + v_statConst{uid} * {xpo}"')
+    lines.append(f'variable oscEX{uid} atom "{xc} + v_statConst{uid} * {xpos}"')
     lines.append(f'variable oscEY{uid} atom "{yc} + v_statConst{uid} * {ypos}"')
     lines.append(f'variable statEZ{uid} atom "v_statConst{uid} * 2 * -z"')
     lines.append('fix {uid} all efield v_oscEX{uid} v_oscEY{uid} v_statEZ{uid}\n')
@@ -195,8 +206,8 @@ def _pseudotrap(uid, k, ions='all'):
     # create a group for this atom type we can use to apply the fix.
     gid = 'all'
     if not ions == 'all':
-        lines.append(f'group {uid} type {iid}')
         iid = ions['uid']
+        lines.append(f'group {uid} type {iid}')
         gid = uid
 
     # Add a cylindrical SHO for the pseudopotential
@@ -219,7 +230,7 @@ def _pseudotrap(uid, k, ions='all'):
 
 @lammps.fix
 def linearpaultrap(uid, trap, ions='all'):
-    if trap['pseudo']:
+    if trap.get('pseudo'):
         charge = ions['charge'] * 1.6e-19
         mass = ions['mass'] * 1.66e-27
         ev = trap['endcapvoltage']
@@ -253,4 +264,52 @@ def linearpaultrap(uid, trap, ions='all'):
     else:
         return _rftrap(uid, trap)
 
+
+@lammps.variable('fix')
+def timeaverage(uid, steps, variables):
+
+    variables = ' '.join(variables)
+
+    lines = [f'fix {uid} all ave/atom 1 {steps:d} {steps:d} {variables}\n']
+
+    return {'code': lines}
+
+
+@lammps.variable('var')
+def squaresum(uid, variables):
+
+    vsq = [f'{v}^2' for v in variables]
+    sqs = '+'.join(vsq)
+
+    # todo what is atom here? I think it's meant to be equal
+    lines = [f'variable {uid} atom "{sqs}"\n']
+
+    return {'code': lines}
+
+
+@lammps.fix
+def dump(uid, filename, variables, steps=10):
+    try:
+        names = variables['output']
+    except:
+        names = ' '.join(variables)
+
+    lines = [f'dump {uid} all custom {steps:d} {filename} id {names}\n']
+
+    return {'code': lines}
+
+
+def trapaqtovoltage(ions, trap, a, q): #rffreq, z0, r0, geomc, trapa, trapq):
+
+    mass = ions['mass'] * 1.66e-27
+    charge = ions['charge'] * 1.6e-19
+    radius = trap['radius']
+    length = trap['length']
+    kappa = trap['kappa']
+    freq = trap['frequency']
+
+    endcapV = a * mass * length**2 * (2*np.pi * freq)**2 / (-kappa * 4 * charge)
+    oscV = -q * mass * radius**2 * (2*np.pi * freq)**2 / (2 * charge)
+
+    return oscV, endcapV
 

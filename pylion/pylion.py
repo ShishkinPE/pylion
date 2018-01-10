@@ -1,5 +1,5 @@
 import h5py
-from .lammps import SimulationError
+from .utils import SimulationError
 
 
 class Simulation(list):
