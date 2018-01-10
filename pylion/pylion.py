@@ -1,63 +1,66 @@
 import h5py
 from .lammps import SimulationError
-from datetime import datetime
-from collections import UserList
-
-# First thing to do now is see if I can correctly generate domain and ions
-# Start working on the Simulation class. Then I'll sort out the cfgobjects.
-
-# I should just keep everything as lists of dicts. Easy to use, easy to extend.
-
-# How to append to a decorator. I can have a single list with all simulation
-# elements rather than appending different ions, fixes etc. The user doesn't
-# really need to keep track of that and I can add the type to the dict returnd
-# by the functions if I want to know what they all are in the Simulation class.
-
-# Simulation() will just be a list of dicts then. Give it an add() function
-# or just use append?
+# from collections import UserList
 
 
-class Simulation(UserList):
-    # subclassing from UserList gives access to self.data attr
+class Simulation(list):
 
     def __init__(self, name='pylion'):
         super().__init__()
-        self.executable = 'lammps'
-        self.timestep = 1e-6
-        self.domain = [1e-3, 1e-3, 1e-3]  # length, width, height
 
+        # keep track of uids for list functions
+        self._uids = []
+
+        # slugify 'name' to use for filename
+        name = name.replace(' ', '_').lower()
+
+        self.attrs = {}
+        self.attrs['executable'] = 'lammps'
+        self.attrs['timestep'] = 1e-6
+        self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
+        self.attrs['name'] = name
         # todo should check if a fix returns timestep and update
 
-        now = datetime.now()
-        self.simfile = name + now.strftime('_%Y%m%d_%H%M.h5')
-
-        # temporary for testing
-        self.simfile = 'temp.h5'
-        # if os.path
-
-        attrs = {'timestep': self.timestep,
-                 'executable': self.executable,
-                 'domain': self.domain}
-
-        with h5py.File(self.simfile, 'w') as f:
-            f.attrs.update(attrs)
-
-    # todo subclass a couple of list methods like index, append etc
-    # index to find using uid
-    # append to check for data structures
-    # del to unfix with using uid
-    # sort if we use priority keys
+        with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
+            f.attrs.update(self.attrs)
 
     def __contains__(self, this):
-        answer = False
-        for odict in self.data:
-            try:
-                if odict['uid'] == this:
-                    answer = True
-                    break
-            except KeyError:
-                pass
-        return answer
+        # raise SimulationError("Element does not have 'uid' key.")
+        return this['uid'] in self._uids
+
+    def append(self, this):
+        try:
+            self._uids.append(this['uid'])
+        except KeyError:
+            # append None to make sure len(self._uids) == len(self.data)
+            self._uids.append(None)
+
+        super().append(this)
+
+    def index(self, this):
+        return self._uids.index(this['uid'])
+
+    def remove(self, this):
+        # use del for actually deleting elements of the list usign a slice
+        uid = this['uid']
+        code = ['\n#Deleting a fix',
+                f'unfix {uid}\n']
+        self.append({'code': code})
+
+    def sort(self):
+        # sort with 'priority' keys if found otherwise do nothing
+        # it's ok to generate this on the fly since I don't expect sorting to
+        # be needed very often if ever
+        # otherwise just use pass to make sure sorting doesn't muddle things
+        # priorities = []
+        # for udict in self:
+        #     try:
+        #         priorities.append(udict['priority'])
+        #     except:
+        #         priorities.append(None)
+        # psorted = priorities.sort()
+        pass
+
 
 
 
