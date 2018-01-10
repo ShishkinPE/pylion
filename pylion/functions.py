@@ -299,7 +299,7 @@ def dump(uid, filename, variables, steps=10):
     return {'code': lines}
 
 
-def trapaqtovoltage(ions, trap, a, q): #rffreq, z0, r0, geomc, trapa, trapq):
+def trapaqtovoltage(ions, trap, a, q):
 
     mass = ions['mass'] * 1.66e-27
     charge = ions['charge'] * 1.6e-19

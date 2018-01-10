@@ -59,7 +59,8 @@ class Ions(CfgObject):
         charge, mass = self.odict['charge'], self.odict['mass']
 
         lines = [f'mass {uid} {1.660e-27*mass:e}',
-                 f'set type {uid} charge {1.6e-19*charge:e}\n']
+                 f'set type {uid} charge {1.6e-19*charge:e}',
+                 f'group {uid} type {uid}']
 
         lines.append('\n# Placing Individual Ions...\n')
 
