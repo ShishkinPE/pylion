@@ -1,0 +1,45 @@
+##############################################
+LAMMPS input file generated using pylion {{ version }}
+##############################################
+{% if gpu %}
+# Enabling GPU acceleration via CUDA...
+package gpu 1
+suffix gpu
+{% endif %}
+units si
+atom_style charge
+
+# Creating simulation box...
+boundary m m m
+region simulationDomain block {{ -domain[0] }}  {{ domain[0] }} {{ -domain[1] }} {{ domain[1] }} {{ -domain[2] }} {{ domain[2] }} units box
+create_box {{ region }} simulationDomain
+
+# Configure Neighbour list...
+neighbor {{ neighbour.skin }} {{ neighbour.list }}
+neigh_modify once yes
+
+# Configure pairwise interactions for long range Coulombics only...
+pair_style coul/cut {{ coulombcutoff }}
+pair_coeff * *
+
+{{ ions }}
+
+timestep {{ timestep }}
+
+# Configuring additional output to flush buffer during simulation...
+thermo 10000
+thermo_style custom step cpu
+thermo_modify flush yes
+
+# Time integration...
+{% if rigid.exists %}
+group nonRigidBody subtract all {{ rigid.groups }}
+group rigidAtoms union {{ rigid.groups }}
+fix rigidIntegrator rigidAtoms rigid group {{ rigid.length }} {{ rigid.groups }}
+{% else %}
+group nonRigidBody union all
+{% endif %}
+fix timeIntegrator nonRigidBody nve
+
+{{ fixes }}
+

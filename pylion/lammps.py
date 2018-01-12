@@ -1,11 +1,10 @@
-from .utils import _pretty_repr, validate_id, validate_vars
+from .utils import _pretty_repr, validate_id, SimulationError
 import functools
 
 
 # Also for the ions that's pretty neat because I can just define whatever
 # placement fucntion I want pretty easily. I should make an example where I
 # plot a smiley face or something with ions.
-
 
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
@@ -32,7 +31,11 @@ class CfgObject:
         func = self.func
 
         # uid = _unique_id(self.func, args)
-        uid = id((self.func,) + args)
+        # todo uids are TOO large. I need a mapping function.
+        uid = 0
+        for arg in [self.func, *args]:
+            uid += id(arg)
+        uid %= 23
         if uid in self.ids:
             lmp_type = self.odict['type']
             raise SimulationError(f'Reusing {lmp_type} with same parameters.')
@@ -43,7 +46,7 @@ class CfgObject:
             func = functools.partial(self.func, uid)
         self.odict.update(func(*args, **kwargs))
 
-        return self.odict
+        return self.odict.copy()
 
     def __repr__(self):
         return _pretty_repr(self.func)
@@ -58,14 +61,14 @@ class Ions(CfgObject):
         uid = self.odict['uid']
         charge, mass = self.odict['charge'], self.odict['mass']
 
-        lines = [f'mass {uid} {1.660e-27*mass:e}',
-                 f'set type {uid} charge {1.6e-19*charge:e}',
-                 f'group {uid} type {uid}']
-
-        lines.append('\n# Placing Individual Ions...\n')
+        lines = ['\n# Placing Individual Ions...\n']
 
         for x, y, z in self.odict['positions']:
             lines.append(f'create_atoms {uid} single {x:e} {y:e} {z:e} units box')
+
+        lines.extend([f'mass {uid} {1.660e-27*mass:e}',
+                      f'set type {uid} charge {1.6e-19*charge:e}',
+                      f'group {uid} type {uid}'])
 
         self.odict.update({'code': lines})
 

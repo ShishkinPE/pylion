@@ -16,7 +16,7 @@ def efield(uid, ex, ey, ez):
     :return:
     """
 
-    lines = ['# Static E-field',
+    lines = ['\n# Static E-field',
              f'fix {uid} all efield {ex:e} {ey:e} {ez:e}']
 
     return {'code': lines}
@@ -43,8 +43,8 @@ def createioncloud(uid, ions, radius, number):
         b = 2*np.pi * np.random.random()
 
         positions.append([d * np.sin(a) * np.cos(b),
-                          d * np.sin(a) * np.sin(b,
-                          d * np.cos(a))])
+                          d * np.sin(a) * np.sin(b),
+                          d * np.cos(a)])
 
     ions.update({'positions': positions})
 
@@ -192,7 +192,7 @@ def _rftrap(uid, trap):
     lines.append(f'variable oscEX{uid} atom "{xc} + v_statConst{uid} * {xpos}"')
     lines.append(f'variable oscEY{uid} atom "{yc} + v_statConst{uid} * {ypos}"')
     lines.append(f'variable statEZ{uid} atom "v_statConst{uid} * 2 * -z"')
-    lines.append('fix {uid} all efield v_oscEX{uid} v_oscEY{uid} v_statEZ{uid}\n')
+    lines.append(f'fix {uid} all efield v_oscEX{uid} v_oscEY{uid} v_statEZ{uid}\n')
 
     odict.update({'code': lines})
 
@@ -289,12 +289,15 @@ def squaresum(uid, variables):
 
 @lammps.fix
 def dump(uid, filename, variables, steps=10):
+    lines = []
+
     try:
         names = variables['output']
+        lines.extend(variables['code'])
     except:
         names = ' '.join(variables)
 
-    lines = [f'dump {uid} all custom {steps:d} {filename} id {names}\n']
+    lines.append(f'dump {uid} all custom {steps:d} {filename} id {names}\n')
 
     return {'code': lines}
 
