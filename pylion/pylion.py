@@ -170,6 +170,7 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
+        print(inspect.currentframe)
         caller = inspect.stack()[2][1]
 
         try:
