@@ -170,7 +170,9 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        caller = inspect.stack()[2][1]
+        # caller is 2 frames back
+        frame = inspect.currentframe().f_back.f_back
+        caller = inspect.getframeinfo(frame).filename
 
         try:
             self._savescriptsource(caller)
