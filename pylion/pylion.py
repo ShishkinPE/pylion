@@ -5,6 +5,7 @@ from .utils import SimulationError
 from jinja2 import Environment, FileSystemLoader
 import os
 import json
+import inspect
 
 version = '0.1.0'
 
@@ -29,8 +30,12 @@ class Simulation(list):
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
 
-    def _saveattrs(self):
+        # make the h5 file so all other operations can append
         with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
+            pass
+
+    def _saveattrs(self):
+        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
             # f.attrs.update(self.attrs)
             # serialise them before saving so that h5 is happy
             for k, v in self.attrs.items():
@@ -111,11 +116,13 @@ class Simulation(list):
         template = env.get_template(self.attrs['template'])
         rendered = template.render({**self.attrs, **odict})
 
-        # save attrs to h5 file
-        self._saveattrs()
-
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
+
+        # save attrs and scripts to h5 file
+        self._saveattrs()
+        self._savecallersource()
+        self._savescriptsource(self.attrs['name'] + '.lammps')
 
     def execute(self):
         self._writeinputfile()
@@ -128,7 +135,8 @@ class Simulation(list):
         signal.signal(signal.SIGINT, signal_handler)
 
         child = pexpect.spawn(
-            ' '.join([self.attrs['executable'], '-in', self.attrs['filename']]),
+            ' '.join([self.attrs['executable'], '-in',
+                      self.attrs['name'] + '.lammps']),
             timeout=300)
 
         self._process_stdout(child)
@@ -154,39 +162,18 @@ class Simulation(list):
             except IOError:
                 raise SimulationError('Pipe to process not working.')
 
+    def _savescriptsource(self, script):
 
+        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
+            with open(script, 'rb') as pf:
+                lines = pf.readlines()
+                f.create_dataset(script, data=lines)
 
+    def _savecallersource(self):
+        caller = inspect.stack()[2][1]
 
-
-
-
-
-
-
-
-
-
-
-
-
-    # def _savescriptsource(self, script):
-
-    #     with h5py.File(self.outfile, 'r+') as f:
-    #         with open(script, 'rb') as pf:
-    #             lines = pf.readlines()
-    #             try:
-    #                 f.create_dataset(script, data=lines)
-    #             except RuntimeError:
-    #                 del f[script]
-    #                 f.create_dataset(script, data=lines)
-
-    # def _savecallersource(self):
-    #     caller = inspect.stack()[2][1]
-
-    #     try:
-    #         self._savescriptsource(caller)
-    #     except IOError:
-    #         # otherwise it cannot be saved on the h5 file
-    #         raise SimulationError('Do not run main script from the console.')
-
-        # with h5py.File('simula')
+        try:
+            self._savescriptsource(caller)
+        except IOError:
+            # otherwise it cannot be saved on the h5 file
+            raise SimulationError('Do not run main script from the repl.')
