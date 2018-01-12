@@ -2,6 +2,7 @@ from .lammps import lammps
 import numpy as np
 
 # todo fix docstrings
+# functions NEED to return lists of code. One element per line
 
 @lammps.fix
 def efield(uid, ex, ey, ez):

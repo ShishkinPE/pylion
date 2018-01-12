@@ -2,7 +2,6 @@ import h5py
 import signal
 import pexpect
 from .utils import SimulationError
-# from string import Template
 from jinja2 import Environment, FileSystemLoader
 import os
 import json
@@ -15,7 +14,7 @@ class Simulation(list):
     def __init__(self, name='pylion'):
         super().__init__()
 
-        # keep track of uids for list functions
+        # keep track of uids for list function overrides
         self._uids = []
 
         # slugify 'name' to use for filename
@@ -26,7 +25,6 @@ class Simulation(list):
         self.attrs['timestep'] = 1e-6
         self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
         self.attrs['name'] = name
-        self.attrs['filename'] = 'simulation.lammps'
         self.attrs['neighbour'] = {'skin': 1, 'list': 'nsq'}
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
@@ -68,27 +66,18 @@ class Simulation(list):
 
     def remove(self, this):
         # use del if you really want to delete something or better yet don't
-        # add it to the simulations in the first place
+        # add it to the simulation in the first place
         code = ['\n#Deleting a fix', f"unfix {this['uid']}\n"]
         self.append({'code': code})
 
     def sort(self):
         # sort with 'priority' keys if found otherwise do nothing
-        # it's ok to generate this on the fly since I don't expect sorting to
-        # be needed very often if ever
-        # otherwise just use pass to make sure sorting doesn't muddle things
-        # priorities = []
-        # for udict in self:
-        #     try:
-        #         priorities.append(udict['priority'])
-        #     except:
-        #         priorities.append(None)
-        # psorted = priorities.sort()
-        pass
+        try:
+            super().sort(key=lambda item: item['priority'])
+        except KeyError:
+            print("Not all elements have 'priority' keys. List not sorted.")
 
     def _writeinputfile(self):
-
-        # self.attrs = self._loadattrs()
 
         self.attrs['version'] = version
         self.attrs.setdefault('rigid', {'exists': False})
@@ -125,7 +114,7 @@ class Simulation(list):
         # save attrs to h5 file
         self._saveattrs()
 
-        with open(self.attrs['filename'], 'w') as f:
+        with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
 
     def execute(self):
@@ -139,8 +128,8 @@ class Simulation(list):
         signal.signal(signal.SIGINT, signal_handler)
 
         child = pexpect.spawn(
-           ' '.join([self.attrs['executable'], '-in', self.attrs['filename']]),
-           timeout=300)
+            ' '.join([self.attrs['executable'], '-in', self.attrs['filename']]),
+            timeout=300)
 
         self._process_stdout(child)
         child.close()
