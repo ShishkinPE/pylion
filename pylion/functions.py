@@ -313,8 +313,32 @@ def trapaqtovoltage(ions, trap, a, q):
     kappa = trap['kappa']
     freq = trap['frequency']
 
-    endcapV = a * mass * length**2 * (2*np.pi * freq)**2 / (-kappa * 4 * charge)
-    oscV = -q * mass * radius**2 * (2*np.pi * freq)**2 / (2 * charge)
+    endcapV = a * mass * length**2 * (2*np.pi * freq)**2 / (-kappa * 4*charge)
+    oscV = -q * mass * radius**2 * (2*np.pi * freq)**2 / (2*charge)
 
     return oscV, endcapV
+
+
+def readdump(filename):
+    steps = []
+    data = []
+    import time
+
+    with open(filename, 'r') as f:
+        for line in f:
+            if line[6:9] == 'TIM':
+                steps.append(next(f))
+            elif line[6:9] == 'NUM':
+                ions = int(next(f))
+            elif line[6:9] == 'ATO':
+                if line[12:14] != 'id':
+                    raise TypeError
+                block = [next(f).split()[1:] for _ in range(ions)]
+                data.append(block)
+
+    steps = np.array(steps, dtype=np.float)
+    data = np.array(data, dtype=np.float)
+    return steps, data
+
+
 
