@@ -8,7 +8,9 @@ name = 'pylion testing'
 s = pl.Simulation(name)
 
 ions = {'mass': 100, 'charge': 1}
-s.append(pl.createioncloud(ions, 1e-5, 10))
+ions = pl.createioncloud(ions, 1e-5, 10)
+s.append(ions)
+print(ions.keys())
 
 trap = {'radius': 7e-3, 'length': 5.5e-3, 'kappa': 0.244, 'frequency': 38.5e6}
 v, ev = pl.trapaqtovoltage(ions, trap, -0.01, 0.3)
@@ -25,6 +27,7 @@ vavg = pl.timeaverage(10, variables=['vx', 'vy', 'vz'])
 s.append(pl.evolve(100000))
 s._writeinputfile()
 # s.execute()
+print(s._types['command'])
 
 # for elem in s:
 #     for line in elem['code']:

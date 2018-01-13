@@ -1,13 +1,18 @@
 import h5py
 import signal
 import pexpect
-from .utils import SimulationError
-from jinja2 import Environment, FileSystemLoader
+import jinja2 as j2
 import os
 import json
 import inspect
 
 version = '0.1.0'
+
+
+class SimulationError(Exception):
+    """Custom error class for Simulation.
+    """
+    pass
 
 
 class Simulation(list):
@@ -17,6 +22,9 @@ class Simulation(list):
 
         # keep track of uids for list function overrides
         self._uids = []
+        # todo see if _types is needed or not
+        self._types = {key: [] for key in ['ions', 'fix',
+                                           'command', 'variable']}
 
         # slugify 'name' to use for filename
         name = name.replace(' ', '_').lower()
@@ -53,8 +61,16 @@ class Simulation(list):
         return this['uid'] in self._uids
 
     def append(self, this):
+        # only allow for dicts in the list
+        assert isinstance(this, dict)
+        self._types[this['type']].append(this)
+
         try:
             self._uids.append(this['uid'])
+            # ions will alway be included first so to sort the user only has to
+            # give priority keys to the fixes with positive valued integers
+            if this.get('type') == 'ions':
+                this['priority'] = 0
         except KeyError:
             # append None to make sure len(self._uids) == len(self.data)
             self._uids.append(None)
@@ -65,6 +81,10 @@ class Simulation(list):
             self.attrs['timestep'] = timestep
 
         super().append(this)
+
+    def extend(self, iterable):
+        for item in iterable:
+            self.append(item)
 
     def index(self, this):
         return self._uids.index(this['uid'])
@@ -80,39 +100,35 @@ class Simulation(list):
         try:
             super().sort(key=lambda item: item['priority'])
         except KeyError:
-            print("Not all elements have 'priority' keys. List not sorted.")
+            print("Not all elements have 'priority' keys. Cannot sort list.")
 
     def _writeinputfile(self):
-
         self.attrs['version'] = version
         self.attrs.setdefault('rigid', {'exists': False})
         odict = dict.fromkeys(['ions', 'fixes'])
 
-        # this is where the magic happens and the simulation list is split
-        # according to type
-        ions = ''
+        # todo replace with split by type during append
         fixes = ''
-        rbgroup = []
         for data in self:
-            lines = data['code']
-            if data.get('type') == 'ions':
-                ions += '\n'.join(lines)
-                # todo I think domain uid might be wrong
-                odict['region'] = data['uid']
+            if data.get('type') != 'ions':
+                fixes += '\n'.join(data['code'])
 
-                if data.get('rigid'):
+        odict['species'] = self._types['ions']
+        rbgroup = []
+        for ions in odict['species']:
+            # todo I think domain uid here is wrong
+            odict['region'] = ions['uid']
+            if ions.get('rigid'):
                     self.attrs['rigid'] = {'exists': True}
                     rbgroup.append(data['uid'])
-            else:
-                fixes += '\n'.join(lines)
+
         odict['ions'] = ions
         odict['fixes'] = fixes
         self.attrs['rigid'].update({'groups': ' '.join(rbgroup),
                                     'length': len(rbgroup)})
 
         # load jinja2 template
-        here = os.path.dirname(os.path.abspath(__file__))
-        env = Environment(loader=FileSystemLoader(here))
+        env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'))
         template = env.get_template(self.attrs['template'])
         rendered = template.render({**self.attrs, **odict})
 
@@ -136,34 +152,30 @@ class Simulation(list):
 
         child = pexpect.spawn(
             ' '.join([self.attrs['executable'], '-in',
-                      self.attrs['name'] + '.lammps']),
-            timeout=300)
+                      self.attrs['name'] + '.lammps']), timeout=300)
 
         self._process_stdout(child)
         child.close()
 
     def _process_stdout(self, child):
-
         atoms = 0
         for line in child:
-            try:
-                if line == 'Created 1 atoms\r\n':
-                    atoms += 1
-                elif atoms > 0:
-                    print(f'Created {atoms} atoms', end='')
-                    atoms = 0
-                elif atoms == 0:
-                    print(line, end='')
+            if line == 'Created 1 atoms\r\n':
+                atoms += 1
+                continue
 
-                if line == 'Created 0 atoms\r\n':
-                    raise SimulationError(
-                        'lammps created 0 atoms - perhaps you called place '
-                        'atoms with positions outside the simulation box?')
-            except IOError:
-                raise SimulationError('Pipe to process not working.')
+            if atoms:
+                print(f'Created {atoms} atoms', end='')
+                atoms = False
+            else:
+                print(line, end='')
+
+            if line == 'Created 0 atoms\r\n':
+                raise SimulationError(
+                    'lammps created 0 atoms - perhaps you placed ions '
+                    'with positions outside the simulation domain?')
 
     def _savescriptsource(self, script):
-
         with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
             with open(script, 'rb') as pf:
                 lines = pf.readlines()
@@ -172,10 +184,11 @@ class Simulation(list):
     def _savecallersource(self):
         # caller is 2 frames back
         frame = inspect.currentframe().f_back.f_back
-        caller = inspect.getframeinfo(frame).filename
+        caller = inspect.getsourcefile(frame)
 
         try:
             self._savescriptsource(caller)
         except IOError:
-            # otherwise it cannot be saved on the h5 file
-            raise SimulationError('Do not run main script from the repl.')
+            # cannot save on the h5 file if using the repl
+            print('Caller source not saved. '
+                  'Are you running the simulation from the repl?')

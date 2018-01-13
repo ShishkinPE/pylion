@@ -22,8 +22,15 @@ neigh_modify once yes
 pair_style coul/cut {{ coulombcutoff }}
 pair_coeff * *
 
-{{ ions }}
+# Placing individual ions...
+{% for ions in species %} {% for position in ions.positions %}
+create_atoms {{ ions.uid }} single {{ position[0] }} {{ position[1] }} {{ position[2] }} units box {% endfor %}
 
+# Species...
+mass {{ ions.uid }} {{ 1.660*10**(-27) * ions.mass }}
+set type {{ ions.uid }} charge {{ 1.6*10**(-19) * ions.charge }}
+group {{ ions.uid }} type {{ ions.uid }}
+{% endfor %}
 timestep {{ timestep }}
 
 # Configuring additional output to flush buffer during simulation...

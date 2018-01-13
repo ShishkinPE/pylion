@@ -1,10 +1,11 @@
-from .utils import _pretty_repr, validate_id, SimulationError
+from .utils import _pretty_repr, validate_id
 import functools
 
 
 # Also for the ions that's pretty neat because I can just define whatever
 # placement fucntion I want pretty easily. I should make an example where I
 # plot a smiley face or something with ions.
+
 
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
@@ -38,7 +39,7 @@ class CfgObject:
         uid %= 23
         if uid in self.ids:
             lmp_type = self.odict['type']
-            raise SimulationError(f'Reusing {lmp_type} with same parameters.')
+            raise TypeError(f'Reusing {lmp_type} with same parameters.')
         self.ids.add(uid)
         self.odict['uid'] = uid
 
@@ -59,18 +60,9 @@ class Ions(CfgObject):
         self.odict = super().__call__(*args, **kwargs)
 
         uid = self.odict['uid']
-        charge, mass = self.odict['charge'], self.odict['mass']
+        # charge, mass = self.odict['charge'], self.odict['mass']
 
-        lines = ['\n# Placing Individual Ions...\n']
-
-        for x, y, z in self.odict['positions']:
-            lines.append(f'create_atoms {uid} single {x:e} {y:e} {z:e} units box')
-
-        lines.extend([f'mass {uid} {1.660e-27*mass:e}',
-                      f'set type {uid} charge {1.6e-19*charge:e}',
-                      f'group {uid} type {uid}'])
-
-        self.odict.update({'code': lines})
+        self.odict['code'] = 'single'
 
         return self.odict
 
@@ -84,13 +76,17 @@ class Variable(CfgObject):
         vs = kwargs['variables']
         allowed = {'id', 'x', 'y', 'z', 'vx', 'vy', 'vz'}
         if not set(vs).issubset(allowed):
-            raise SimulationError(f'Use only {allowed} variables.')
+            prefix = [item.startswith('v_') for item in vs]
+            if not all(prefix):
+                raise TypeError(
+                    f'Use only {allowed} as variables or previously defined '
+                    "variables with the prefix 'v_'.")
 
         self.odict = super().__call__(*args, **kwargs)
-        # I can look for the words fix or variable in code to see what type it is
+        # I can look for the words fix or variable in code to check type
 
         pre = 'f_'
-        if self.odict['type'].endswith('var'):
+        if self.odict['vtype'] == 'var':
             pre = 'v_'
 
         name = self.odict['uid']
@@ -117,9 +113,11 @@ class lammps:
         @validate_id
         # @validate_vars  # need kwarg variables
         def decorator(func):
-            return Variable(func, f'variable {vtype}', required_keys=['output'])
+            return Variable(func, 'variable',
+                            required_keys=['output', 'vtype'])
         return decorator
 
     @validate_id
     def ions(func):
-        return Ions(func, 'ions', required_keys=['charge', 'mass', 'positions'])
+        return Ions(func, 'ions',
+                    required_keys=['charge', 'mass', 'positions'])
