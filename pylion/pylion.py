@@ -2,11 +2,10 @@ import h5py
 import signal
 import pexpect
 import jinja2 as j2
-import os
 import json
 import inspect
 
-version = '0.1.0'
+__version__ = '0.1.0'
 
 
 class SimulationError(Exception):
@@ -103,34 +102,20 @@ class Simulation(list):
             print("Not all elements have 'priority' keys. Cannot sort list.")
 
     def _writeinputfile(self):
-        self.attrs['version'] = version
+        self.attrs['version'] = __version__
         self.attrs.setdefault('rigid', {'exists': False})
-        odict = dict.fromkeys(['ions', 'fixes'])
 
-        # todo replace with split by type during append
-        fixes = ''
-        for data in self:
-            if data.get('type') != 'ions':
-                fixes += '\n'.join(data['code'])
-
-        odict['species'] = self._types['ions']
-        rbgroup = []
-        for ions in odict['species']:
-            # todo I think domain uid here is wrong
-            odict['region'] = ions['uid']
+        odict = {'species': self._types.pop('ions')}
+        for idx, ions in enumerate(odict['species']):
             if ions.get('rigid'):
                     self.attrs['rigid'] = {'exists': True}
-                    rbgroup.append(data['uid'])
-
-        odict['ions'] = ions
-        odict['fixes'] = fixes
-        self.attrs['rigid'].update({'groups': ' '.join(rbgroup),
-                                    'length': len(rbgroup)})
+                    self.attrs['rigid'].setdefault('groups', []).append(idx)
 
         # load jinja2 template
-        env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'))
+        env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
+                             trim_blocks=True)
         template = env.get_template(self.attrs['template'])
-        rendered = template.render({**self.attrs, **odict})
+        rendered = template.render({**self.attrs, **odict, **self._types})
 
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
@@ -150,9 +135,8 @@ class Simulation(list):
 
         signal.signal(signal.SIGINT, signal_handler)
 
-        child = pexpect.spawn(
-            ' '.join([self.attrs['executable'], '-in',
-                      self.attrs['name'] + '.lammps']), timeout=300)
+        child = pexpect.spawn(' '.join([self.attrs['executable'], '-in',
+                              self.attrs['name'] + '.lammps']), timeout=300)
 
         self._process_stdout(child)
         child.close()
@@ -160,17 +144,17 @@ class Simulation(list):
     def _process_stdout(self, child):
         atoms = 0
         for line in child:
-            if line == 'Created 1 atoms\r\n':
+            if line == b'Created 1 atoms\r\n':
                 atoms += 1
                 continue
 
             if atoms:
-                print(f'Created {atoms} atoms', end='')
+                print(f'Created {atoms} atoms.')
                 atoms = False
             else:
-                print(line, end='')
+                print(line.decode(), end='')
 
-            if line == 'Created 0 atoms\r\n':
+            if line == b'Created 0 atoms\r\n':
                 raise SimulationError(
                     'lammps created 0 atoms - perhaps you placed ions '
                     'with positions outside the simulation domain?')

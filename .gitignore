@@ -8,3 +8,4 @@ __pycache__
 *.lammps
 *.old
 notes.md
+*.txt

@@ -1,20 +1,27 @@
-##############################################
-LAMMPS input file generated using pylion {{ version }}
-##############################################
+##################################################################
+# LAMMPS input file generated using pylion {{ version }}
+# simulation name: {{ name }}
+#
+# pylion is written and maintained by Dimitri Trypogeorgos
+# and Elliot Bentine. The code can be be downloaded from <bitbucket>.
+# If you find it useful please cite <paper>.
+##################################################################
+
 {% if gpu %}
 # Enabling GPU acceleration via CUDA...
 package gpu 1
 suffix gpu
 {% endif %}
+
 units si
 atom_style charge
 
 # Creating simulation box...
 boundary m m m
 region simulationDomain block {{ -domain[0] }}  {{ domain[0] }} {{ -domain[1] }} {{ domain[1] }} {{ -domain[2] }} {{ domain[2] }} units box
-create_box {{ region }} simulationDomain
+create_box {{ species|length }} simulationDomain
 
-# Configure Neighbour list...
+# Configure neighbour list...
 neighbor {{ neighbour.skin }} {{ neighbour.list }}
 neigh_modify once yes
 
@@ -23,14 +30,18 @@ pair_style coul/cut {{ coulombcutoff }}
 pair_coeff * *
 
 # Placing individual ions...
-{% for ions in species %} {% for position in ions.positions %}
-create_atoms {{ ions.uid }} single {{ position[0] }} {{ position[1] }} {{ position[2] }} units box {% endfor %}
+{% for ions in species %}
+{% set idx  = loop.index %}
+{% for position in ions.positions %}
+create_atoms {{ idx }} single {{ position|join(' ') }} units box
+{% endfor %}
 
 # Species...
-mass {{ ions.uid }} {{ 1.660*10**(-27) * ions.mass }}
-set type {{ ions.uid }} charge {{ 1.6*10**(-19) * ions.charge }}
-group {{ ions.uid }} type {{ ions.uid }}
+mass {{ idx }} {{ 1.660539*10**(-27) * ions.mass }}
+set type {{ idx }} charge {{ 1.60217646*10**(-19) * ions.charge }}
+group {{ idx }} type {{ idx }}
 {% endfor %}
+
 timestep {{ timestep }}
 
 # Configuring additional output to flush buffer during simulation...
@@ -40,13 +51,19 @@ thermo_modify flush yes
 
 # Time integration...
 {% if rigid.exists %}
-group nonRigidBody subtract all {{ rigid.groups }}
-group rigidAtoms union {{ rigid.groups }}
-fix rigidIntegrator rigidAtoms rigid group {{ rigid.length }} {{ rigid.groups }}
+group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
+group rigidAtoms union {{ rigid.groups|join(' ') }}
+fix rigidIntegrator rigidAtoms rigid group {{ rigid.groups|length }} {{ rigid.groups|join(' ') }}
 {% else %}
 group nonRigidBody union all
 {% endif %}
 fix timeIntegrator nonRigidBody nve
 
-{{ fixes }}
+{% for type in [variable, fix, command]%}
+{% for item in type %}
+{% for line in item.code %}
+{{ line }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
 

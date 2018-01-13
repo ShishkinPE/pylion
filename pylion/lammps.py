@@ -1,10 +1,7 @@
 from .utils import _pretty_repr, validate_id
 import functools
 
-
-# Also for the ions that's pretty neat because I can just define whatever
-# placement fucntion I want pretty easily. I should make an example where I
-# plot a smiley face or something with ions.
+# todo make an example where I plot a smiley face or something with ions.
 
 
 class CfgObject:
@@ -32,11 +29,11 @@ class CfgObject:
         func = self.func
 
         # uid = _unique_id(self.func, args)
-        # todo uids are TOO large. I need a mapping function.
         uid = 0
         for arg in [self.func, *args]:
             uid += id(arg)
-        uid %= 23
+        # divide ids with some number to make them more palateable
+        uid //= 1293879
         if uid in self.ids:
             lmp_type = self.odict['type']
             raise TypeError(f'Reusing {lmp_type} with same parameters.')
@@ -51,20 +48,6 @@ class CfgObject:
 
     def __repr__(self):
         return _pretty_repr(self.func)
-
-
-# ion function return charge, mass, positions
-class Ions(CfgObject):
-
-    def __call__(self, *args, **kwargs):
-        self.odict = super().__call__(*args, **kwargs)
-
-        uid = self.odict['uid']
-        # charge, mass = self.odict['charge'], self.odict['mass']
-
-        self.odict['code'] = 'single'
-
-        return self.odict
 
 
 class Variable(CfgObject):
@@ -117,7 +100,6 @@ class lammps:
                             required_keys=['output', 'vtype'])
         return decorator
 
-    @validate_id
     def ions(func):
-        return Ions(func, 'ions',
-                    required_keys=['charge', 'mass', 'positions'])
+        return CfgObject(func, 'ions',
+                         required_keys=['charge', 'mass', 'positions'])

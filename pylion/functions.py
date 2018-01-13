@@ -4,6 +4,7 @@ import numpy as np
 # todo fix docstrings
 # functions NEED to return lists of code. One element per line
 
+
 @lammps.fix
 def efield(uid, ex, ey, ez):
     """EFIELD Adds a uniform, time-independent e-field to the simulation.
@@ -24,7 +25,7 @@ def efield(uid, ex, ey, ez):
 
 
 @lammps.ions
-def placeions(uid, ions, positions):
+def placeions(ions, positions):
     # each atom is a dict with keys 'charge', 'mass'
 
     # pos = _put_ions(uid, positions)
@@ -34,7 +35,7 @@ def placeions(uid, ions, positions):
 
 
 @lammps.ions
-def createioncloud(uid, ions, radius, number):
+def createioncloud(ions, radius, number):
 
     positions = []
 
@@ -162,12 +163,11 @@ def _rftrap(uid, trap):
         lines.append(f'variable oscVx{uid}{i:d}\t\tequal {v:e}')
         lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy:e}')
         lines.append(f'variable phase{uid}{i:d}\t\tequal "{2*np.pi*f:e} * step*dt"')
-        lines.append(f'variable oscConstx{uid}{i:d}\t\tequal "v_oscVx{0}{1:d}/(v_radius{uid}*v_radius{uid})"')
+        lines.append(f'variable oscConstx{uid}{i:d}\t\tequal "v_oscVx{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
         lines.append(f'variable oscConsty{uid}{i:d}\t\tequal "v_oscVy{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
 
     lines.append(
-        f'variable statConst{uid}\t\tequal "v_geomC{uid} * v_endCapV{uid}'
-        ' / (v_zLength{uid} * v_zLength{uid})"\n')
+        f'variable statConst{uid}\t\tequal "v_geomC{uid} * v_endCapV{uid} / (v_zLength{uid} * v_zLength{uid})"\n')
 
     xc = []
     yc = []
@@ -177,6 +177,7 @@ def _rftrap(uid, trap):
 
     # Simplify this case for 0 displacement so that unnecessary operations are
     # not used
+    # todo the offset does not work
     if offset[0] == 0:
         xpos = 'x'
 
