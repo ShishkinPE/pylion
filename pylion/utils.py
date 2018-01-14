@@ -33,7 +33,7 @@ def validate_id(func):
             raise TypeError("First argument needs to be 'uid'.")
 
         cfg = func(*args)
-        cfg._partial = True
+        cfg._unique_id = True
         return cfg
     return wrapper
 
