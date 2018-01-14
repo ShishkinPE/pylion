@@ -179,13 +179,8 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        # todo caller is 2 or 3 frames back?
-        try:
-            frame = inspect.currentframe().f_back.f_back.f_back
-            caller = inspect.getsourcefile(frame)
-        except TypeError:
-            frame = inspect.currentframe().f_back.f_back
-            caller = inspect.getsourcefile(frame)
+        frame = inspect.stack()[-1]
+        caller = frame.filename
 
         try:
             self._savescriptsource(caller)
