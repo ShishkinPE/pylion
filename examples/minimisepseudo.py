@@ -29,13 +29,19 @@ s.append(pl.dump('positions.txt', variables=['x', 'y', 'z'], steps=100))
 
 s.append(pl.evolve(1e4))
 
-# s._writeinputfile()
-s.execute()
+# s.execute()
 
-# _, data = pl.readdump('positions.txt')
-# data *= 1e6
+_, data = pl.readdump('positions.txt')
+data *= 1e6
 
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2])
-# plt.show()
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(data[::10, :, 0], data[::10, :, 1], data[::10, :, 2])
+ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2], c='r', s=50)
+plt.show()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(data[0, :, 0], data[0, :, 1], data[0, :, 2])
+ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2], c='r', s=50)
+plt.show()

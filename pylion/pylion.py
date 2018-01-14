@@ -107,7 +107,7 @@ class Simulation(list):
                 odict['species'].append(item)
                 if item.get('rigid'):
                     self.attrs['rigid'] = {'exists': True}
-                    self.attrs['rigid'].setdefault('groups', []).append(idx)
+                    self.attrs['rigid'].setdefault('groups', []).append(idx+1)
             else:
                 odict['simulation'].append(item)
 

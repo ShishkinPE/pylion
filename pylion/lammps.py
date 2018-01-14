@@ -37,7 +37,8 @@ class CfgObject:
         if uid in self.ids:
             lmp_type = self.odict['type']
             raise TypeError(f'Reusing {lmp_type} with same parameters.')
-        self.ids.add(uid)
+        # self.ids.add(uid)
+        # todo rethink the strict id check. twospeciestwotrap does not run because it does not allow for to evolve functions
         self.odict['uid'] = uid
 
         if self._partial:

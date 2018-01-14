@@ -40,8 +40,8 @@ create_atoms {{ idx }} single {{ position|join(' ') }} units box
 mass {{ idx }} {{ 1.660539*10**(-27) * ions.mass }}
 set type {{ idx }} charge {{ 1.60217646*10**(-19) * ions.charge }}
 group {{ idx }} type {{ idx }}
-{% endfor %}
 
+{% endfor %}
 timestep {{ timestep }}
 
 # Configuring additional output to flush buffer during simulation...
@@ -51,9 +51,9 @@ thermo_modify flush yes
 
 # Time integration...
 {% if rigid.exists %}
-group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
 group rigidAtoms union {{ rigid.groups|join(' ') }}
 fix rigidIntegrator rigidAtoms rigid group {{ rigid.groups|length }} {{ rigid.groups|join(' ') }}
+group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
 {% else %}
 group nonRigidBody union all
 {% endif %}
