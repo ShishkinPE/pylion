@@ -57,7 +57,7 @@ def createioncloud(ions, radius, number):
 def evolve(steps):
 
     lines = ['\n# Run simulation',
-             f'run {steps:d}\n']
+             f'run {int(steps):d}\n']
 
     return {'code': lines}
 
@@ -161,7 +161,7 @@ def _rftrap(uid, trap):
 
     for i, (v, f) in enumerate(zip(voltages, freqs)):
         lines.append(f'variable oscVx{uid}{i:d}\t\tequal {v:e}')
-        lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy:e}')
+        lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy*v:e}')
         lines.append(f'variable phase{uid}{i:d}\t\tequal "{2*np.pi*f:e} * step*dt"')
         lines.append(f'variable oscConstx{uid}{i:d}\t\tequal "v_oscVx{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
         lines.append(f'variable oscConsty{uid}{i:d}\t\tequal "v_oscVy{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
@@ -259,7 +259,7 @@ def linearpaultrap(uid, trap, ions='all'):
         odict = {}
         odict['timestep'] = 1 / max(wz, wr) / 10
 
-        sho = _pseudotrap(uid, (kr, kr, kz), ions)
+        sho = _pseudotrap(uid, (kr, kr, kz))
 
         odict.update(sho)
         return odict

@@ -64,7 +64,7 @@ class Simulation(list):
         # only allow for dicts in the list
         assert isinstance(this, dict)
         self._types[this['type']].append(this)
-
+        # _types break insertion order. I can either get rid of it and just pop the atoms or give priority keys by incrementing self._priority while dealing them in keys. Then put them all in a single dict, sort them and pass that to the template. Seems like a lot of work. Just get rid of _types. Pop the atoms in the end and insert the rest as is.
         try:
             self._uids.append(this['uid'])
             # ions will alway be included first so to sort the user only has to
@@ -92,8 +92,8 @@ class Simulation(list):
     def remove(self, this):
         # use del if you really want to delete something or better yet don't
         # add it to the simulation in the first place
-        code = ['\n#Deleting a fix', f"unfix {this['uid']}\n"]
-        self.append({'code': code})
+        code = ['\n# Deleting a fix', f"unfix {this['uid']}\n"]
+        self.append({'code': code, 'type': 'fix'})
 
     def sort(self):
         # sort with 'priority' keys if found otherwise do nothing

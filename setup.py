@@ -10,7 +10,8 @@ requirements = [
     'pexpect>=4.2.1',
     'termcolor>=1.1.0',
     'numpy>=1.13.1',
-    'jinja2>=2.9.6'
+    'jinja2>=2.9.6',
+    'matplotlib>=2.0.2'
     # TODO: put package requirements here
 ]
 
