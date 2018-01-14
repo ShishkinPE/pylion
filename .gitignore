@@ -1,0 +1,11 @@
+*.h5
+*.hdf
+__pycache__
+*.egg-info
+*.egg
+*.pyc
+.vscode
+*.lammps
+*.old
+notes.md
+*.txt

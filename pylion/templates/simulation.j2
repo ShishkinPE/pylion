@@ -1,0 +1,69 @@
+##################################################################
+# LAMMPS input file generated using pylion {{ version }}
+# simulation name: {{ name }}
+#
+# pylion is written and maintained by Dimitri Trypogeorgos
+# and Elliot Bentine. The code can be be downloaded from <bitbucket>.
+# If you find it useful please cite <paper>.
+##################################################################
+
+{% if gpu %}
+# Enabling GPU acceleration via CUDA...
+package gpu 1
+suffix gpu
+{% endif %}
+
+units si
+atom_style charge
+
+# Creating simulation box...
+boundary m m m
+region simulationDomain block {{ -domain[0] }}  {{ domain[0] }} {{ -domain[1] }} {{ domain[1] }} {{ -domain[2] }} {{ domain[2] }} units box
+create_box {{ species|length }} simulationDomain
+
+# Configure neighbour list...
+neighbor {{ neighbour.skin }} {{ neighbour.list }}
+neigh_modify once yes
+
+# Configure pairwise interactions for long range Coulombics only...
+pair_style coul/cut {{ coulombcutoff }}
+pair_coeff * *
+
+# Placing individual ions...
+{% for ions in species %}
+{% set idx  = loop.index %}
+{% for position in ions.positions %}
+create_atoms {{ idx }} single {{ position|join(' ') }} units box
+{% endfor %}
+
+# Species...
+mass {{ idx }} {{ 1.660539*10**(-27) * ions.mass }}
+set type {{ idx }} charge {{ 1.60217646*10**(-19) * ions.charge }}
+group {{ idx }} type {{ idx }}
+{% endfor %}
+
+timestep {{ timestep }}
+
+# Configuring additional output to flush buffer during simulation...
+thermo 10000
+thermo_style custom step cpu
+thermo_modify flush yes
+
+# Time integration...
+{% if rigid.exists %}
+group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
+group rigidAtoms union {{ rigid.groups|join(' ') }}
+fix rigidIntegrator rigidAtoms rigid group {{ rigid.groups|length }} {{ rigid.groups|join(' ') }}
+{% else %}
+group nonRigidBody union all
+{% endif %}
+fix timeIntegrator nonRigidBody nve
+
+{% for type in [variable, fix, command]%}
+{% for item in type %}
+{% for line in item.code %}
+{{ line }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
