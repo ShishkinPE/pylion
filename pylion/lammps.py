@@ -1,9 +1,6 @@
 from .utils import _pretty_repr, validate_id
 import functools
 
-# naughty global to make sure ion uids increment correctly
-IONS_UID = 1
-
 
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
@@ -51,12 +48,13 @@ class CfgObject:
 
 
 class Ions(CfgObject):
+    _instance = 1
+
     def __call__(self, *args, **kwargs):
         self.odict = super().__call__(*args, **kwargs)
 
-        global IONS_UID
-        self.odict['uid'] = IONS_UID
-        IONS_UID += 1
+        self.odict['uid'] = Ions._instance
+        Ions._instance += 1
 
         return self.odict.copy()
 
