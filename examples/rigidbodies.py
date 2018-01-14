@@ -6,6 +6,7 @@ import matplotlib.animation as animation
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 

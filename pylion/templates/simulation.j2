@@ -31,15 +31,14 @@ pair_coeff * *
 
 # Placing individual ions...
 {% for ions in species %}
-{% set idx  = loop.index %}
 {% for position in ions.positions %}
-create_atoms {{ idx }} single {{ position|join(' ') }} units box
+create_atoms {{ ions.uid }} single {{ position|join(' ') }} units box
 {% endfor %}
 
 # Species...
-mass {{ idx }} {{ 1.660539*10**(-27) * ions.mass }}
-set type {{ idx }} charge {{ 1.60217646*10**(-19) * ions.charge }}
-group {{ idx }} type {{ idx }}
+mass {{ ions.uid }} {{ 1.660539*10**(-27) * ions.mass }}
+set type {{ ions.uid }} charge {{ 1.60217646*10**(-19) * ions.charge }}
+group {{ ions.uid }} type {{ ions.uid }}
 
 {% endfor %}
 timestep {{ timestep }}

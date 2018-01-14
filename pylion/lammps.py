@@ -1,7 +1,8 @@
 from .utils import _pretty_repr, validate_id
 import functools
 
-# todo make an example where I plot a smiley face or something with ions.
+# naughty global to make sure ion uids increment correctly
+IONS_UID = 1
 
 
 class CfgObject:
@@ -49,11 +50,22 @@ class CfgObject:
         return _pretty_repr(self.func)
 
 
+class Ions(CfgObject):
+    def __call__(self, *args, **kwargs):
+        self.odict = super().__call__(*args, **kwargs)
+
+        global IONS_UID
+        self.odict['uid'] = IONS_UID
+        IONS_UID += 1
+
+        return self.odict.copy()
+
+
 class Variable(CfgObject):
 
     def __call__(self, *args, **kwargs):
         # only support fix type variables
-        # var type varibales are easier to add with custom code
+        # var type variables are easier to add with custom code
 
         vs = kwargs['variables']
         allowed = {'id', 'x', 'y', 'z', 'vx', 'vy', 'vz'}
@@ -76,7 +88,7 @@ class Variable(CfgObject):
 
         self.odict.update({'output': output})
 
-        return self.odict
+        return self.odict.copy()
 
 
 class lammps:
@@ -100,5 +112,5 @@ class lammps:
         return decorator
 
     def ions(func):
-        return CfgObject(func, 'ions',
-                         required_keys=['charge', 'mass', 'positions'])
+        return Ions(func, 'ions',
+                    required_keys=['charge', 'mass', 'positions'])

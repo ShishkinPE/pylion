@@ -58,6 +58,7 @@ class Simulation(list):
         return this['uid'] in self._uids
 
     def append(self, this):
+        # print(this)
         # only allow for dicts in the list
         assert isinstance(this, dict)
         try:
@@ -179,8 +180,12 @@ class Simulation(list):
 
     def _savecallersource(self):
         # todo caller is 2 or 3 frames back?
-        frame = inspect.currentframe().f_back.f_back.f_back
-        caller = inspect.getsourcefile(frame)
+        try:
+            frame = inspect.currentframe().f_back.f_back.f_back
+            caller = inspect.getsourcefile(frame)
+        except TypeError:
+            frame = inspect.currentframe().f_back.f_back
+            caller = inspect.getsourcefile(frame)
 
         try:
             self._savescriptsource(caller)

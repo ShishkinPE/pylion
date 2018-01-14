@@ -6,6 +6,7 @@ import matplotlib.animation as animation
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 
@@ -23,7 +24,7 @@ vavg = pl.timeaverage(20, variables=['vx', 'vy', 'vz'])
 s.append(pl.dump('secv.txt', vavg, steps=200))
 
 s.append(pl.evolve(1e4))
-# s.execute()
+s.execute()
 
 _, data = pl.readdump('positions.txt')
 data *= 1e6

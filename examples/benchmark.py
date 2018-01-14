@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 

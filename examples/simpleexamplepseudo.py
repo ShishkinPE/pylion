@@ -5,16 +5,17 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 
 ions = {'mass': 30, 'charge': -1}
 positions = [[0, 0, -1e-4], [0, 0, 0], [0, 0, 1e-4]]
-s.append(pl.placeions(ions, positions))
+ions = pl.placeions(ions, positions)
+s.append(ions)
 
-trap = {'radius': 7e-3, 'length': 5.5e-3, 'kappa': 0.244,
-        'frequency': 3.85e6, 'voltage': 300, 'endcapvoltage': -0.01, 'pseudo': True}
-s.append(pl.linearpaultrap(trap, ions))
+trap = {'radius': 7e-3, 'length': 5.5e-3, 'kappa': 0.244, 'frequency': 3.85e6, 'voltage': 300, 'endcapvoltage': -0.01, 'pseudo': True}
+s.append(pl.linearpaultrap(trap, ions, all=False))
 
 s.append(pl.langevinbath(1e-6, 1e-5))
 

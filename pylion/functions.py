@@ -175,9 +175,7 @@ def _rftrap(uid, trap):
     xpos = f'(x-{offset[0]:e})'
     ypos = f'(y-{offset[1]:e})'
 
-    # Simplify this case for 0 displacement so that unnecessary operations are
-    # not used
-    # todo the offset does not work
+    # Simplify this case for 0 displacement
     if offset[0] == 0:
         xpos = 'x'
 
@@ -201,16 +199,9 @@ def _rftrap(uid, trap):
     return odict
 
 
-def _pseudotrap(uid, k, ions='all'):
+def _pseudotrap(uid, k, group='all'):
 
     lines = [f'\n# Pseudopotential approximation for Linear Paul trap... (fixID={uid})']
-
-    # create a group for this atom type we can use to apply the fix.
-    gid = 'all'
-    if not ions == 'all':
-        iid = ions['uid']
-        lines.append(f'group {uid} type {iid}')
-        gid = uid
 
     # Add a cylindrical SHO for the pseudopotential
     kx, ky, kz = k
@@ -223,15 +214,15 @@ def _pseudotrap(uid, k, ions='all'):
            f'variable fY{uid} atom "-v_k_y{uid} * y"',
            f'variable fZ{uid} atom "-v_k_z{uid} * z"',
            f'variable E{uid} atom "v_k_x{uid} * x * x / 2 + v_k_y{uid} * y * y / 2 + v_k_z{uid} * z * z / 2"',
-           f'fix {uid} {gid} addforce v_fX{uid} v_fY{uid} v_fZ{uid} energy v_E{uid}\n']
+           f'fix {uid} {group} addforce v_fX{uid} v_fY{uid} v_fZ{uid} energy v_E{uid}\n']
 
     lines.extend(sho)
 
     return {'code': lines}
 
-# todo ge rid of ions from here and the sho
+
 @lammps.fix
-def linearpaultrap(uid, trap, ions='all'):
+def linearpaultrap(uid, trap, ions=None, all=True):
     if trap.get('pseudo'):
         charge = ions['charge'] * 1.6e-19
         mass = ions['mass'] * 1.66e-27
@@ -259,7 +250,12 @@ def linearpaultrap(uid, trap, ions='all'):
         odict = {}
         odict['timestep'] = 1 / max(wz, wr) / 10
 
-        sho = _pseudotrap(uid, (kr, kr, kz))
+        if all:
+            group = 'all'
+        else:
+            group = ions['uid']
+
+        sho = _pseudotrap(uid, (kr, kr, kz), group)
 
         odict.update(sho)
         return odict

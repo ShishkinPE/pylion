@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 
@@ -16,9 +17,9 @@ s.append(pl.createioncloud(heavyions, 1e-3, 1))
 
 trap = {'radius': 1.75e-3, 'length': 2e-3, 'kappa': 0.325,
         'frequency': [98.3e3, 10.03e6], 'endcapvoltage': 0.18}
-v1, _ = pl.trapaqtovoltage(lightions, trap, 0, 0.3)
-v2, _ = pl.trapaqtovoltage(heavyions, trap, 0, 0.3)
-trap['voltage'] = [v2[0], v1[1]]
+v1, _ = pl.trapaqtovoltage(heavyions, trap, 0, 0.3)
+v2, _ = pl.trapaqtovoltage(lightions, trap, 0, 0.3)
+trap['voltage'] = [v1[0], v2[1]]
 s.append(pl.linearpaultrap(trap))
 
 s.append(pl.langevinbath(3e-4, 1e-5))
@@ -31,6 +32,7 @@ s.remove(bath)
 s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
 
 s.append(pl.evolve(1e4))
+# s._writeinputfile()
 s.execute()
 
 _, data = pl.readdump('positions.txt')

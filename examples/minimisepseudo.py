@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
+name = 'new'
 
 s = pl.Simulation(name)
 
@@ -29,7 +30,7 @@ s.append(pl.dump('positions.txt', variables=['x', 'y', 'z'], steps=100))
 
 s.append(pl.evolve(1e4))
 
-# s.execute()
+s.execute()
 
 _, data = pl.readdump('positions.txt')
 data *= 1e6
