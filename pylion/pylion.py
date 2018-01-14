@@ -22,9 +22,6 @@ class Simulation(list):
 
         # keep track of uids for list function overrides
         self._uids = []
-        # todo see if _types is needed or not
-        self._types = {key: [] for key in ['ions', 'fix',
-                                           'command', 'variable']}
 
         # slugify 'name' to use for filename
         name = name.replace(' ', '_').lower()
@@ -63,12 +60,10 @@ class Simulation(list):
     def append(self, this):
         # only allow for dicts in the list
         assert isinstance(this, dict)
-        self._types[this['type']].append(this)
-        # _types break insertion order. I can either get rid of it and just pop the atoms or give priority keys by incrementing self._priority while dealing them in keys. Then put them all in a single dict, sort them and pass that to the template. Seems like a lot of work. Just get rid of _types. Pop the atoms in the end and insert the rest as is.
         try:
             self._uids.append(this['uid'])
-            # ions will alway be included first so to sort the user only has to
-            # give priority keys to the fixes with positive valued integers
+            # ions will always be included first so to sort the user only has
+            # to give priority keys to the frest with positive valued integers
             if this.get('type') == 'ions':
                 this['priority'] = 0
         except KeyError:
@@ -93,7 +88,7 @@ class Simulation(list):
         # use del if you really want to delete something or better yet don't
         # add it to the simulation in the first place
         code = ['\n# Deleting a fix', f"unfix {this['uid']}\n"]
-        self.append({'code': code, 'type': 'fix'})
+        self.append({'code': code, 'type': 'command'})
 
     def sort(self):
         # sort with 'priority' keys if found otherwise do nothing
@@ -106,28 +101,33 @@ class Simulation(list):
         self.attrs['version'] = __version__
         self.attrs.setdefault('rigid', {'exists': False})
 
-        odict = {'species': self._types.pop('ions')}
-        for idx, ions in enumerate(odict['species']):
-            if ions.get('rigid'):
+        odict = {key: [] for key in ['species', 'simulation']}
+        for idx, item in enumerate(self):
+            if item.get('type') == 'ions':
+                odict['species'].append(item)
+                if item.get('rigid'):
                     self.attrs['rigid'] = {'exists': True}
                     self.attrs['rigid'].setdefault('groups', []).append(idx)
+            else:
+                odict['simulation'].append(item)
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
                              trim_blocks=True)
         template = env.get_template(self.attrs['template'])
-        rendered = template.render({**self.attrs, **odict, **self._types})
+        rendered = template.render({**self.attrs, **odict})
 
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
 
         # get a few more attrs
         self.attrs['time'] = datetime.now().isoformat()
-        for fix in self._types['fix']:
-            for line in fix['code']:
-                if line.startswith('dump'):
-                    filename = line.split()[5]
-                    self.attrs.setdefault('output_files', []).append(filename)
+        for item in odict['simulation']:
+            if item.get('type') == 'fix':
+                for line in item['code']:
+                    if line.startswith('dump'):
+                        filename = line.split()[5]
+                        self.attrs.setdefault('output_files', []).append(filename)
 
         # save attrs and scripts to h5 file
         self._saveattrs()
@@ -178,7 +178,7 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        # caller is 2 or 3 frames back
+        # todo caller is 2 or 3 frames back?
         frame = inspect.currentframe().f_back.f_back.f_back
         caller = inspect.getsourcefile(frame)
 

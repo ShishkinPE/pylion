@@ -59,11 +59,9 @@ group nonRigidBody union all
 {% endif %}
 fix timeIntegrator nonRigidBody nve
 
-{% for type in [variable, fix, command]%}
-{% for item in type %}
+{% for item in simulation %}
 {% for line in item.code %}
 {{ line }}
-{% endfor %}
 {% endfor %}
 {% endfor %}
 

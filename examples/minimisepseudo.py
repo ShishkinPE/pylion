@@ -29,6 +29,7 @@ s.append(pl.dump('positions.txt', variables=['x', 'y', 'z'], steps=100))
 
 s.append(pl.evolve(1e4))
 
+# s._writeinputfile()
 s.execute()
 
 # _, data = pl.readdump('positions.txt')
