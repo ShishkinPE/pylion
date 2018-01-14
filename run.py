@@ -26,9 +26,9 @@ s.append(pl.dump('secv.txt', vavg))
 
 s.append(pl.evolve(10000))
 # s._writeinputfile()
-# s.execute()
+s.execute()
 steps, data = pl.readdump('positions.txt')
-print(data.shape)
+print()
 # print(data['x'][:10])
 # print(s._types['command'])
 

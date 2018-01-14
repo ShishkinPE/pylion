@@ -4,6 +4,7 @@ import pexpect
 import jinja2 as j2
 import json
 import inspect
+from datetime import datetime
 
 __version__ = '0.1.0'
 
@@ -120,6 +121,14 @@ class Simulation(list):
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
 
+        # get a few more attrs
+        self.attrs['time'] = datetime.now().isoformat()
+        for fix in self._types['fix']:
+            for line in fix['code']:
+                if line.startswith('dump'):
+                    filename = line.split()[5]
+                    self.attrs.setdefault('output_files', []).append(filename)
+
         # save attrs and scripts to h5 file
         self._saveattrs()
         self._savecallersource()
@@ -140,6 +149,9 @@ class Simulation(list):
 
         self._process_stdout(child)
         child.close()
+
+        for filename in self.attrs['output_files'] + ['log.lammps']:
+            self._savescriptsource(filename)
 
     def _process_stdout(self, child):
         atoms = 0
@@ -166,8 +178,8 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        # caller is 2 frames back
-        frame = inspect.currentframe().f_back.f_back
+        # caller is 2 or 3 frames back
+        frame = inspect.currentframe().f_back.f_back.f_back
         caller = inspect.getsourcefile(frame)
 
         try:

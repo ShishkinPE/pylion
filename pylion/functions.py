@@ -283,7 +283,6 @@ def squaresum(uid, variables):
     vsq = [f'{v}^2' for v in variables]
     sqs = '+'.join(vsq)
 
-    # todo what is atom here? I think it's meant to be equal
     lines = [f'variable {uid} atom "{sqs}"\n']
 
     return {'code': lines}
@@ -337,8 +336,5 @@ def readdump(filename):
                 data.append(block)
 
     steps = np.array(steps, dtype=np.float)
-    data = np.array(data, dtype=np.float)
+    data = np.array(data, dtype=np.float)  # shape=(steps, ions, (x,y,z))
     return steps, data
-
-
-
