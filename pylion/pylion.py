@@ -96,11 +96,14 @@ class Simulation(list):
         try:
             super().sort(key=lambda item: item['priority'])
         except KeyError:
-            print("Not all elements have 'priority' keys. Cannot sort list.")
+            pass
+            # Not all elements have 'priority' keys. Cannot sort list
 
     def _writeinputfile(self):
         self.attrs['version'] = __version__
         self.attrs.setdefault('rigid', {'exists': False})
+
+        self.sort()
 
         odict = {key: [] for key in ['species', 'simulation']}
         for idx, item in enumerate(self):

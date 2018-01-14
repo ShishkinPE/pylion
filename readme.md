@@ -1,8 +1,8 @@
-======
-pylion
-======
+
+# pylion
 
 
+<!--
 .. image:: https://img.shields.io/pypi/v/pylion.svg
         :target: https://pypi.python.org/pypi/pylion
 
@@ -11,7 +11,7 @@ pylion
         :target: https://pylion.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-     :alt: Updates
+     :alt: Updates -->
 
 
 A LAMMPS wrapper for molecular dynamics simulations of trapped ions.
@@ -21,16 +21,14 @@ A LAMMPS wrapper for molecular dynamics simulations of trapped ions.
 * Documentation: https://pylion.readthedocs.io.
 
 
-Features
---------
+## Features
 
 * TODO
 
-Credits
----------
+## Credits
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+<!-- This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage -->
 
