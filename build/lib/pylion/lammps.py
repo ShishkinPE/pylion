@@ -1,11 +1,14 @@
 from .utils import _pretty_repr, validate_id
 import functools
 
+# todo make an example where I plot a smiley face or something with ions.
+
 
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
 
         self.func = func
+        self._partial = False
 
         # use default keys and update if there is anything else
         self.odict = dict.fromkeys(('code', 'type'))
@@ -25,19 +28,19 @@ class CfgObject:
 
         func = self.func
 
-        if getattr(self, '_unique_id', False):
-            # uid = _unique_id(self.func, args)
-            uid = 0
-            for arg in [self.func, *args]:
-                uid += id(arg)
-            # divide ids with some number to make them more palateable
-            uid //= 1293879
-            if uid in self.ids:
-                lmp_type = self.odict['type']
-                raise TypeError(f'Reusing {lmp_type} with same parameters.')
-            self.ids.add(uid)
-            self.odict['uid'] = uid
+        # uid = _unique_id(self.func, args)
+        uid = 0
+        for arg in [self.func, *args]:
+            uid += id(arg)
+        # divide ids with some number to make them more palateable
+        uid //= 1293879
+        if uid in self.ids:
+            lmp_type = self.odict['type']
+            raise TypeError(f'Reusing {lmp_type} with same parameters.')
+        self.ids.add(uid)
+        self.odict['uid'] = uid
 
+        if self._partial:
             func = functools.partial(self.func, uid)
         self.odict.update(func(*args, **kwargs))
 
@@ -47,23 +50,11 @@ class CfgObject:
         return _pretty_repr(self.func)
 
 
-class Ions(CfgObject):
-    _instance = 1
-
-    def __call__(self, *args, **kwargs):
-        self.odict = super().__call__(*args, **kwargs)
-
-        self.odict['uid'] = Ions._instance
-        Ions._instance += 1
-
-        return self.odict.copy()
-
-
 class Variable(CfgObject):
 
     def __call__(self, *args, **kwargs):
         # only support fix type variables
-        # var type variables are easier to add with custom code
+        # var type varibales are easier to add with custom code
 
         vs = kwargs['variables']
         allowed = {'id', 'x', 'y', 'z', 'vx', 'vy', 'vz'}
@@ -86,7 +77,7 @@ class Variable(CfgObject):
 
         self.odict.update({'output': output})
 
-        return self.odict.copy()
+        return self.odict
 
 
 class lammps:
@@ -110,5 +101,5 @@ class lammps:
         return decorator
 
     def ions(func):
-        return Ions(func, 'ions',
-                    required_keys=['charge', 'mass', 'positions'])
+        return CfgObject(func, 'ions',
+                         required_keys=['charge', 'mass', 'positions'])

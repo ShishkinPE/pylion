@@ -31,17 +31,16 @@ pair_coeff * *
 
 # Placing individual ions...
 {% for ions in species %}
-{% set idx  = loop.index %}
 {% for position in ions.positions %}
-create_atoms {{ idx }} single {{ position|join(' ') }} units box
+create_atoms {{ ions.uid }} single {{ position|join(' ') }} units box
 {% endfor %}
 
 # Species...
-mass {{ idx }} {{ 1.660539*10**(-27) * ions.mass }}
-set type {{ idx }} charge {{ 1.60217646*10**(-19) * ions.charge }}
-group {{ idx }} type {{ idx }}
-{% endfor %}
+mass {{ ions.uid }} {{ 1.660539*10**(-27) * ions.mass }}
+set type {{ ions.uid }} charge {{ 1.60217646*10**(-19) * ions.charge }}
+group {{ ions.uid }} type {{ ions.uid }}
 
+{% endfor %}
 timestep {{ timestep }}
 
 # Configuring additional output to flush buffer during simulation...
@@ -51,19 +50,17 @@ thermo_modify flush yes
 
 # Time integration...
 {% if rigid.exists %}
-group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
 group rigidAtoms union {{ rigid.groups|join(' ') }}
 fix rigidIntegrator rigidAtoms rigid group {{ rigid.groups|length }} {{ rigid.groups|join(' ') }}
+group nonRigidBody subtract all {{ rigid.groups|join(' ') }}
 {% else %}
 group nonRigidBody union all
 {% endif %}
 fix timeIntegrator nonRigidBody nve
 
-{% for type in [variable, fix, command]%}
-{% for item in type %}
+{% for item in simulation %}
 {% for line in item.code %}
 {{ line }}
-{% endfor %}
 {% endfor %}
 {% endfor %}
 

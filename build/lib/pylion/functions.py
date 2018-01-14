@@ -57,7 +57,7 @@ def createioncloud(ions, radius, number):
 def evolve(steps):
 
     lines = ['\n# Run simulation',
-             f'run {int(steps):d}\n']
+             f'run {steps:d}\n']
 
     return {'code': lines}
 
@@ -161,7 +161,7 @@ def _rftrap(uid, trap):
 
     for i, (v, f) in enumerate(zip(voltages, freqs)):
         lines.append(f'variable oscVx{uid}{i:d}\t\tequal {v:e}')
-        lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy*v:e}')
+        lines.append(f'variable oscVy{uid}{i:d}\t\tequal {anisotropy:e}')
         lines.append(f'variable phase{uid}{i:d}\t\tequal "{2*np.pi*f:e} * step*dt"')
         lines.append(f'variable oscConstx{uid}{i:d}\t\tequal "v_oscVx{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
         lines.append(f'variable oscConsty{uid}{i:d}\t\tequal "v_oscVy{uid}{i:d}/(v_radius{uid}*v_radius{uid})"')
@@ -175,7 +175,9 @@ def _rftrap(uid, trap):
     xpos = f'(x-{offset[0]:e})'
     ypos = f'(y-{offset[1]:e})'
 
-    # Simplify this case for 0 displacement
+    # Simplify this case for 0 displacement so that unnecessary operations are
+    # not used
+    # todo the offset does not work
     if offset[0] == 0:
         xpos = 'x'
 
@@ -199,9 +201,16 @@ def _rftrap(uid, trap):
     return odict
 
 
-def _pseudotrap(uid, k, group='all'):
+def _pseudotrap(uid, k, ions='all'):
 
     lines = [f'\n# Pseudopotential approximation for Linear Paul trap... (fixID={uid})']
+
+    # create a group for this atom type we can use to apply the fix.
+    gid = 'all'
+    if not ions == 'all':
+        iid = ions['uid']
+        lines.append(f'group {uid} type {iid}')
+        gid = uid
 
     # Add a cylindrical SHO for the pseudopotential
     kx, ky, kz = k
@@ -214,7 +223,7 @@ def _pseudotrap(uid, k, group='all'):
            f'variable fY{uid} atom "-v_k_y{uid} * y"',
            f'variable fZ{uid} atom "-v_k_z{uid} * z"',
            f'variable E{uid} atom "v_k_x{uid} * x * x / 2 + v_k_y{uid} * y * y / 2 + v_k_z{uid} * z * z / 2"',
-           f'fix {uid} {group} addforce v_fX{uid} v_fY{uid} v_fZ{uid} energy v_E{uid}\n']
+           f'fix {uid} {gid} addforce v_fX{uid} v_fY{uid} v_fZ{uid} energy v_E{uid}\n']
 
     lines.extend(sho)
 
@@ -222,7 +231,7 @@ def _pseudotrap(uid, k, group='all'):
 
 
 @lammps.fix
-def linearpaultrap(uid, trap, ions=None, all=True):
+def linearpaultrap(uid, trap, ions='all'):
     if trap.get('pseudo'):
         charge = ions['charge'] * 1.6e-19
         mass = ions['mass'] * 1.66e-27
@@ -250,12 +259,7 @@ def linearpaultrap(uid, trap, ions=None, all=True):
         odict = {}
         odict['timestep'] = 1 / max(wz, wr) / 10
 
-        if all:
-            group = 'all'
-        else:
-            group = ions['uid']
-
-        sho = _pseudotrap(uid, (kr, kr, kz), group)
+        sho = _pseudotrap(uid, (kr, kr, kz), ions)
 
         odict.update(sho)
         return odict
@@ -307,8 +311,6 @@ def trapaqtovoltage(ions, trap, a, q):
     length = trap['length']
     kappa = trap['kappa']
     freq = trap['frequency']
-    if hasattr(freq, '__iter__'):
-        freq = np.array(freq)
 
     endcapV = a * mass * length**2 * (2*np.pi * freq)**2 / (-kappa * 4*charge)
     oscV = -q * mass * radius**2 * (2*np.pi * freq)**2 / (2*charge)

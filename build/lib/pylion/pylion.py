@@ -6,7 +6,7 @@ import json
 import inspect
 from datetime import datetime
 
-__version__ = '0.3.0'
+__version__ = '0.2.0'
 
 
 class SimulationError(Exception):
@@ -22,6 +22,9 @@ class Simulation(list):
 
         # keep track of uids for list function overrides
         self._uids = []
+        # todo see if _types is needed or not
+        self._types = {key: [] for key in ['ions', 'fix',
+                                           'command', 'variable']}
 
         # slugify 'name' to use for filename
         name = name.replace(' ', '_').lower()
@@ -58,13 +61,14 @@ class Simulation(list):
         return this['uid'] in self._uids
 
     def append(self, this):
-        # print(this)
         # only allow for dicts in the list
         assert isinstance(this, dict)
+        self._types[this['type']].append(this)
+
         try:
             self._uids.append(this['uid'])
-            # ions will always be included first so to sort the user only has
-            # to give priority keys to the frest with positive valued integers
+            # ions will alway be included first so to sort the user only has to
+            # give priority keys to the fixes with positive valued integers
             if this.get('type') == 'ions':
                 this['priority'] = 0
         except KeyError:
@@ -88,50 +92,42 @@ class Simulation(list):
     def remove(self, this):
         # use del if you really want to delete something or better yet don't
         # add it to the simulation in the first place
-        code = ['\n# Deleting a fix', f"unfix {this['uid']}\n"]
-        self.append({'code': code, 'type': 'command'})
+        code = ['\n#Deleting a fix', f"unfix {this['uid']}\n"]
+        self.append({'code': code})
 
     def sort(self):
         # sort with 'priority' keys if found otherwise do nothing
         try:
             super().sort(key=lambda item: item['priority'])
         except KeyError:
-            pass
-            # Not all elements have 'priority' keys. Cannot sort list
+            print("Not all elements have 'priority' keys. Cannot sort list.")
 
     def _writeinputfile(self):
         self.attrs['version'] = __version__
         self.attrs.setdefault('rigid', {'exists': False})
 
-        self.sort()
-
-        odict = {key: [] for key in ['species', 'simulation']}
-        for idx, item in enumerate(self):
-            if item.get('type') == 'ions':
-                odict['species'].append(item)
-                if item.get('rigid'):
+        odict = {'species': self._types.pop('ions')}
+        for idx, ions in enumerate(odict['species']):
+            if ions.get('rigid'):
                     self.attrs['rigid'] = {'exists': True}
-                    self.attrs['rigid'].setdefault('groups', []).append(idx+1)
-            else:
-                odict['simulation'].append(item)
+                    self.attrs['rigid'].setdefault('groups', []).append(idx)
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
                              trim_blocks=True)
         template = env.get_template(self.attrs['template'])
-        rendered = template.render({**self.attrs, **odict})
+        rendered = template.render({**self.attrs, **odict, **self._types})
 
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
 
         # get a few more attrs
         self.attrs['time'] = datetime.now().isoformat()
-        for item in odict['simulation']:
-            if item.get('type') == 'fix':
-                for line in item['code']:
-                    if line.startswith('dump'):
-                        filename = line.split()[5]
-                        self.attrs.setdefault('output_files', []).append(filename)
+        for fix in self._types['fix']:
+            for line in fix['code']:
+                if line.startswith('dump'):
+                    filename = line.split()[5]
+                    self.attrs.setdefault('output_files', []).append(filename)
 
         # save attrs and scripts to h5 file
         self._saveattrs()
@@ -182,8 +178,9 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        frame = inspect.stack()[-1]
-        caller = frame.filename
+        # caller is 2 or 3 frames back
+        frame = inspect.currentframe().f_back.f_back.f_back
+        caller = inspect.getsourcefile(frame)
 
         try:
             self._savescriptsource(caller)
