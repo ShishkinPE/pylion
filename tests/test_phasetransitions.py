@@ -19,6 +19,3 @@ class TestPylion(unittest.TestCase):
         with self.assertRaises(TypeError):
             # but it happens also with different ones
             pl.efield(1, 1, 1)
-
-if __name__ == '__main__':
-    unittest.main()

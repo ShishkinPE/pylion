@@ -1,34 +1,47 @@
 
 # pylion
 
-
-<!--
-.. image:: https://img.shields.io/pypi/v/pylion.svg
-        :target: https://pypi.python.org/pypi/pylion
-
-
-.. image:: https://readthedocs.org/projects/pylion/badge/?version=latest
-        :target: https://pylion.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
-
-     :alt: Updates -->
-
-
 A LAMMPS wrapper for molecular dynamics simulations of trapped ions.
 
+## Installation
 
-* Free software: MIT license
-* Documentation: https://pylion.readthedocs.io.
+First install `lammps` using your preferred method.
+If installing from source make sure the `rigid` and `misc` packages are installed as well.
+Something like the following should do it:
 
+~~~~bash
+make yes-rigid
+make yes-misc
+make serial
+
+# other useful commands
+make package (list available packages and help)
+make ps (list package status)
+~~~~
+
+This will make the `lmp-serial` executable.
+On macOS you can also try `make mac` or installing the precompiled package from `homebrew`.
+
+With `lammps` installed, install `pylion` with:
+~~~
+python3 setup.py
+~~~
+`pylion` is python 3 **only** and has been tested with python 3.6 and the `lammps` 31Mar17 build.
+We suggest using the Anaconda python distribution that comes batteries included.
+To make the documentation use `make html` in the documentation folder.
+
+Free software: MIT license
 
 ## Features
 
-* TODO
+* Simulate multiple ion species in the same trp.
 
-## Credits
+* Use multiple trap driving frequencies. See [Phys. Rev. A 94, 02360](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
 
-<!-- This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+* Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage -->
+If you find this software useful in your research please cite:
 
+1. [D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
+
+2. [C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)

@@ -31,6 +31,9 @@ class CfgObject:
             for arg in [self.func, *args]:
                 uid += id(arg)
             # divide ids with some number to make them more palateable
+            # todo this is no good. For the uid to be different for the same
+            # fix and a different numerical args the difference must bigger
+            # than the number below... unittest fails with this uid
             uid //= 1293879
             if uid in self.ids:
                 lmp_type = self.odict['type']
