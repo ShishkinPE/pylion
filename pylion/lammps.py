@@ -16,6 +16,8 @@ class CfgObject:
 
         # keep a set of ids to  make sure a second call to the same object
         # is only allowed with different input arguments
+        # I could make this a class attribute so it is guaranteed
+        # that no ids clash, like in Ions
         self.ids = set()
 
         # add dunder attrs from func

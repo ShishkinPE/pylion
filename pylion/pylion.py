@@ -112,6 +112,14 @@ class Simulation(list):
             else:
                 odict['simulation'].append(item)
 
+        # do a couple of checks
+        # check for uids clashing
+        uids = list(filter(None.__ne__, self._uids))
+        if len(uids) > len(set(uids)):
+            raise SimulationError(
+                "There are identical 'uids'. Although this is allowed in some "
+                " cases, 'lammps' is probably not going to like it.")
+
         # make sure species will behave
         maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
         if maxuid > len(odict['species']):
