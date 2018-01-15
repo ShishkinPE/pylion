@@ -30,8 +30,10 @@ class CfgObject:
             uid = 0
             for arg in [self.func, *args]:
                 uid += id(arg)
-            # divide ids with some number to make them more palateable
-            uid //= 1293879
+            # extract 2 least significant bytes. that should be enough
+            # to make sure ids are unique and it's sensitive to small changes
+            # in the input arguments
+            uid &= 0xFFF
             if uid in self.ids:
                 lmp_type = self.odict['type']
                 raise TypeError(f'Reusing {lmp_type} with same parameters.')

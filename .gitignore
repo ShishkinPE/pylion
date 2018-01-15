@@ -9,3 +9,4 @@ __pycache__
 *.old
 notes.md
 *.txt
+build

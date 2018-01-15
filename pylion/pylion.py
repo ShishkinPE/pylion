@@ -6,7 +6,7 @@ import json
 import inspect
 from datetime import datetime
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 
 class SimulationError(Exception):
@@ -41,30 +41,26 @@ class Simulation(list):
 
     def _saveattrs(self):
         with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
-            # f.attrs.update(self.attrs)
-            # serialise them before saving so that h5 is happy
-            for k, v in self.attrs.items():
-                    f.attrs[k] = json.dumps(v)
+            # serialise them before saving so that h5 is happy no matter
+            # what you throw at it
+            f.attrs.update({k: json.dumps(v)
+                            for k, v in self.attrs.items()})
 
     def _loadattrs(self):
-        odict = {}
         with h5py.File(self.attrs['name'] + '.h5', 'r') as f:
-            for k, v in self.attrs.items():
-                    odict[k] = json.loads(f.attrs[k])
-        return odict
+            return {k: json.loads(v) for k, v in f.attrs.items()}
 
     def __contains__(self, this):
         # raise SimulationError("Element does not have 'uid' key.")
         return this['uid'] in self._uids
 
     def append(self, this):
-        # print(this)
         # only allow for dicts in the list
         assert isinstance(this, dict)
         try:
             self._uids.append(this['uid'])
-            # ions will always be included first so to sort the user only has
-            # to give priority keys to the frest with positive valued integers
+            # ions will always be included first so to sort you have
+            # to give 1-count 'priority' keys to the rest
             if this.get('type') == 'ions':
                 this['priority'] = 0
         except KeyError:
@@ -103,7 +99,7 @@ class Simulation(list):
         self.attrs['version'] = __version__
         self.attrs.setdefault('rigid', {'exists': False})
 
-        self.sort()
+        self.sort()  # if 'priority' keys exist
 
         odict = {key: [] for key in ['species', 'simulation']}
         for idx, item in enumerate(self):
@@ -114,6 +110,14 @@ class Simulation(list):
                     self.attrs['rigid'].setdefault('groups', []).append(idx+1)
             else:
                 odict['simulation'].append(item)
+
+        # make sure species will behave
+        maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
+        if maxuid > len(odict['species']):
+            raise SimulationError(
+                "Max 'uid' of species is larger than the number of species. "
+                "Calling '@lammps.ions' decorated functions "
+                "always increments the 'uid' count.")
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
@@ -167,8 +171,9 @@ class Simulation(list):
             if atoms:
                 print(f'Created {atoms} atoms.')
                 atoms = False
-            else:
-                print(line.decode(), end='')
+                continue
+
+            print(line.decode(), end='')
 
             if line == b'Created 0 atoms\r\n':
                 raise SimulationError(

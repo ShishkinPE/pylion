@@ -307,8 +307,6 @@ def trapaqtovoltage(ions, trap, a, q):
     length = trap['length']
     kappa = trap['kappa']
     freq = trap['frequency']
-    if hasattr(freq, '__iter__'):
-        freq = np.array(freq)
 
     endcapV = a * mass * length**2 * (2*np.pi * freq)**2 / (-kappa * 4*charge)
     oscV = -q * mass * radius**2 * (2*np.pi * freq)**2 / (2*charge)
