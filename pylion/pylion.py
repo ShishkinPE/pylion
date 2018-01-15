@@ -5,6 +5,7 @@ import jinja2 as j2
 import json
 import inspect
 from datetime import datetime
+import sys
 
 __version__ = '0.3.2'
 
@@ -187,12 +188,13 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        frame = inspect.stack()[-1]
-        caller = frame.filename
+        frame = inspect.currentframe().f_back.f_back
+        caller = inspect.getfile(frame)
 
-        try:
+        if sys.argv[0] == caller:
             self._savescriptsource(caller)
-        except IOError:
+        else:
+            pass
             # cannot save on the h5 file if using the repl
             print('Caller source not saved. '
                   'Are you running the simulation from the repl?')

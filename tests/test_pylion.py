@@ -23,5 +23,9 @@ class TestPylion(unittest.TestCase):
         with self.assertRaises(TypeError):
             pl.efield(1, 1, 1)
 
+    # todo
+    # test using more ions than you should
+    # test...
+
 if __name__ == '__main__':
     unittest.main()
