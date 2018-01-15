@@ -6,6 +6,7 @@ import json
 import inspect
 from datetime import datetime
 import sys
+import time
 
 __version__ = '0.3.2'
 
@@ -151,7 +152,15 @@ class Simulation(list):
         self._savecallersource()
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
+        # give it some time to write everything in the h5 file
+        time.sleep(1)
+
     def execute(self):
+
+        if getattr(self, '_hasexecuted', False):
+            print('Simulation has executed already. Do not run it again.')
+            return
+
         self._writeinputfile()
 
         def signal_handler(sig, frame):
@@ -166,6 +175,8 @@ class Simulation(list):
 
         self._process_stdout(child)
         child.close()
+
+        self._hasexecuted = True
 
         for filename in self.attrs['output_files'] + ['log.lammps']:
             self._savescriptsource(filename)
@@ -199,10 +210,10 @@ class Simulation(list):
         frame = inspect.currentframe().f_back.f_back
         caller = inspect.getfile(frame)
 
+        # todo this is still not reliable...
         if sys.argv[0] == caller:
             self._savescriptsource(caller)
         else:
-            pass
             # cannot save on the h5 file if using the repl
             print('Caller source not saved. '
                   'Are you running the simulation from the repl?')
