@@ -6,7 +6,7 @@ import json
 import inspect
 from datetime import datetime
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 
 class SimulationError(Exception):
