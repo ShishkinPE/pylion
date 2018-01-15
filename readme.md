@@ -1,7 +1,7 @@
 
 # pylion
 
-A LAMMPS wrapper for molecular dynamics simulations of trapped ions.
+A [LAMMPS](http://lammps.sandia.gov/) wrapper for molecular dynamics simulations of trapped ions.
 
 ## Installation
 

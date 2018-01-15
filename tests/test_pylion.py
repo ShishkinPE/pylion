@@ -15,9 +15,12 @@ class TestPylion(unittest.TestCase):
         """Test unique ids."""
 
         pl.efield(1, 1, 1)
-        # If I call it again with the same params it should raise an error
+
+        # all good if I change an argument
+        pl.efield(1, 1, 1.1)
+
+        # if I call it again with the same params it should raise an error
         with self.assertRaises(TypeError):
-            # but it happens also with different ones
             pl.efield(1, 1, 1)
 
 if __name__ == '__main__':
