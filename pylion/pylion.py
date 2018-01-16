@@ -16,16 +16,14 @@ class SimulationError(Exception):
     pass
 
 
-class Attributes:
-    """Container for attributes with h5 friendly json values."""
-
-    def __setattr__(self, name, value):
-        super().__setattr__(name, json.dumps(value))
+class Attributes(dict):
+    """Light dict wrapper to serve as a container of attributes."""
 
     def save(self, filename):
-        with h5py.File(filename, 'r+') as f:
-            print(f'Saving attributes to {filename}', self.__dict__)
-            f.attrs.update(self.__dict__)
+        with h5py.File(filename) as f:
+            print(f'Saving attributes to {filename}')
+            f.attrs.update({k: json.dumps(v)
+                            for k, v in self.items()})
 
     def load(self, filename):
         with h5py.File(filename, 'r') as f:
@@ -43,7 +41,7 @@ class Simulation(list):
         # slugify 'name' to use for filename
         name = name.replace(' ', '_').lower()
 
-        self.attrs = {}
+        self.attrs = Attributes()
         self.attrs['executable'] = '/Applications/lammps-31Mar17/src/lmp_serial'
         self.attrs['timestep'] = 1e-6
         self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
@@ -52,20 +50,9 @@ class Simulation(list):
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
 
-        # make the h5 file so all other operations can append
+        # initalise the h5 file
         with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
             pass
-
-    def _saveattrs(self):
-        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
-            # serialise them before saving so that h5 is happy no matter
-            # what you throw at it
-            f.attrs.update({k: json.dumps(v)
-                            for k, v in self.attrs.items()})
-
-    def _loadattrs(self):
-        with h5py.File(self.attrs['name'] + '.h5', 'r') as f:
-            return {k: json.loads(v) for k, v in f.attrs.items()}
 
     def __contains__(self, this):
         # raise SimulationError("Element does not have 'uid' key.")
@@ -164,7 +151,7 @@ class Simulation(list):
                                       if line.startswith('dump')]
 
         # save attrs and scripts to h5 file
-        self._saveattrs()
+        self.attrs.save(self.attrs['name'] + '.h5')
         self._savecallersource()
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
@@ -218,7 +205,7 @@ class Simulation(list):
             print(line)
 
     def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
+        with h5py.File(self.attrs['name'] + '.h5') as f:
             with open(script, 'rb') as pf:
                 lines = pf.readlines()
                 f.create_dataset(script, data=lines)
