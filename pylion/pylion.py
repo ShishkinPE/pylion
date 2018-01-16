@@ -12,9 +12,24 @@ __version__ = '0.3.2'
 
 
 class SimulationError(Exception):
-    """Custom error class for Simulation.
-    """
+    """Custom error class for Simulation."""
     pass
+
+
+class Attributes:
+    """Container for attributes with h5 friendly json values."""
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, json.dumps(value))
+
+    def save(self, filename):
+        with h5py.File(filename, 'r+') as f:
+            print(f'Saving attributes to {filename}', self.__dict__)
+            f.attrs.update(self.__dict__)
+
+    def load(self, filename):
+        with h5py.File(filename, 'r') as f:
+            return {k: json.loads(v) for k, v in f.attrs.items()}
 
 
 class Simulation(list):
