@@ -141,13 +141,12 @@ class Simulation(list):
         # get a few more attrs
         self.attrs['time'] = datetime.now().isoformat()
 
-        # and the name of the output_files in this clunky way
-        for item in odict['simulation']:
-            if item.get('type') == 'fix':
-                for line in item['code']:
-                    if line.startswith('dump'):
-                        filename = line.split()[5]
-                        self.attrs.setdefault('output_files', []).append(filename)
+        # and the name of the output files
+        fixes = filter(lambda item: item.get('type') == 'fix',
+                       odict['simulation'])
+        self.attrs['output_files'] = [line.split()[5] for fix in fixes
+                                      for line in fix['code']
+                                      if line.startswith('dump')]
 
         # save attrs and scripts to h5 file
         self._saveattrs()
@@ -173,7 +172,8 @@ class Simulation(list):
         signal.signal(signal.SIGINT, signal_handler)
 
         child = pexpect.spawn(' '.join([self.attrs['executable'], '-in',
-                              self.attrs['name'] + '.lammps']), timeout=300)
+                              self.attrs['name'] + '.lammps']), timeout=30,
+                              encoding='utf8')
 
         self._process_stdout(child)
         child.close()
@@ -186,21 +186,21 @@ class Simulation(list):
     def _process_stdout(self, child):
         atoms = 0
         for line in child:
-            if line == b'Created 1 atoms\r\n':
+            line = line.rstrip('\r\n')
+            if line == 'Created 1 atoms':
                 atoms += 1
                 continue
+            elif line == 'Created 0 atoms':
+                raise SimulationError(
+                    'lammps created 0 atoms - perhaps you placed ions '
+                    'with positions outside the simulation domain?')
 
             if atoms:
                 print(f'Created {atoms} atoms.')
                 atoms = False
                 continue
 
-            print(line.decode(), end='')
-
-            if line == b'Created 0 atoms\r\n':
-                raise SimulationError(
-                    'lammps created 0 atoms - perhaps you placed ions '
-                    'with positions outside the simulation domain?')
+            print(line)
 
     def _savescriptsource(self, script):
         with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
