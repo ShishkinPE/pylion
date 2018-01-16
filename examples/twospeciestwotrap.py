@@ -19,10 +19,10 @@ rf1 = 10.03e6
 rf2 = 98.3e3
 trap = {'radius': 1.75e-3, 'length': 2e-3, 'kappa': 0.325,
         'frequency': rf1, 'endcapvoltage': 0.18}
-v1, _ = pl.trapaqtovoltage(heavyions, trap, 0, 0.3)
+v1, _ = pl.trapaqtovoltage(lightions, trap, 0, 0.3)
 
 trap['frequency'] = rf2
-v2, _ = pl.trapaqtovoltage(lightions, trap, 0, 0.3)
+v2, _ = pl.trapaqtovoltage(heavyions, trap, 0, 0.3)
 trap['frequency'] = [rf1, rf2]
 trap['voltage'] = [v1, v2]
 s.append(pl.linearpaultrap(trap))
@@ -37,8 +37,8 @@ s.remove(bath)
 s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
 
 s.append(pl.evolve(1e4))
-s._writeinputfile()
-# s.execute()
+# s._writeinputfile()
+s.execute()
 
 # _, data = pl.readdump('positions.txt')
 # data *= 1e6

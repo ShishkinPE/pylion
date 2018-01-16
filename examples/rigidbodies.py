@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 # use filename for simulation name
-name = Path(__file__).stem
+# name = Path(__file__).stem
 name = 'new'
 
 s = pl.Simulation(name)
@@ -37,36 +37,23 @@ data *= 1e6
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(data[-1, :50, 0], data[-1, :50, 1], data[-1, :50, 2])
-ax.scatter(data[-1, -3:, 0], data[-1, -3:, 1], data[-1, -3:, 2], c='r', s=50)
+p1 = ax.scatter(data[0, :50, 0], data[0, :50, 1], data[0, :50, 2], alpha=0.8)
+p2 = ax.scatter(data[0, -3:, 0], data[0, -3:, 1], data[0, -3:, 2],
+                c='r', s=80, alpha=0.8)
 ax.set_xlim([-60, 60])
 ax.set_ylim([-60, 60])
 ax.set_zlim([-60, 60])
+
+
+# 3D animation
+def update_points(frame):
+    p1.set_offsets(data[frame, :50, :2])
+    p1.set_3d_properties(data[frame, :50, 2], 'z')
+    p2.set_offsets(data[frame, -3:, :2])
+    p2.set_3d_properties(data[frame, -3:, 2], 'z')
+    return frame
+
+
+anim = animation.FuncAnimation(fig, update_points, frames=len(data),
+                               interval=20, repeat=False)
 plt.show()
-
-# # TODO make this work
-# # 3D animation
-# def update_lines(num, d1, d2, d3, line):
-#     # NOTE: there is no .set_data() for 3 dim data...
-#     # and set_3d_properties does a weird fade
-#     # line.set_offsets([d1[num], d2[num]])
-#     # line.set_3d_properties(d3[num], zdir='z')
-#     line._offsets3d = (d1[num], d2[num], d3[num])
-#     # line.set_color(np.zeros((50, 3)))
-#     return line
-
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# d1 = data[..., 0]
-# d2 = data[..., 1]
-# d3 = data[..., 2]
-# l = ax.scatter(d1[0], d2[0], d3[0], s=40)
-# ax.set_xlim([-60, 60])
-# ax.set_ylim([-60, 60])
-# ax.set_zlim([-60, 60])
-
-# line_ani = animation.FuncAnimation(
-#         fig, update_lines, frames=1000, interval=20, fargs=(d1, d2, d3, l),
-#         blit=False, repeat=False)
-
-# plt.show()

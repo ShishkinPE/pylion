@@ -140,6 +140,8 @@ class Simulation(list):
 
         # get a few more attrs
         self.attrs['time'] = datetime.now().isoformat()
+
+        # and the name of the output_files in this clunky way
         for item in odict['simulation']:
             if item.get('type') == 'fix':
                 for line in item['code']:
@@ -152,7 +154,7 @@ class Simulation(list):
         self._savecallersource()
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
-        # give it some time to write everything in the h5 file
+        # give it some time to write everything to the h5 file
         time.sleep(1)
 
     def execute(self):
@@ -164,7 +166,7 @@ class Simulation(list):
         self._writeinputfile()
 
         def signal_handler(sig, frame):
-            print('Simulation terminated by the user')
+            print('Simulation terminated by the user.')
             child.terminate()
             # sys.exit(0)
 
@@ -207,13 +209,15 @@ class Simulation(list):
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        frame = inspect.currentframe().f_back.f_back
-        caller = inspect.getfile(frame)
+        # inspect the first four frames of the stack to find the correct
+        # filename. This covers calling from execute() or _writeinputfile().
+        # if the stack is indeed larger than this it's probably the REPL.
+        stack = inspect.stack()[:4]
+        for frame in stack:
+            if sys.argv[0] == frame.filename:
+                self._savescriptsource(frame.filename)
+                return
 
-        # todo this is still not reliable...
-        if sys.argv[0] == caller:
-            self._savescriptsource(caller)
-        else:
-            # cannot save on the h5 file if using the repl
-            print('Caller source not saved. '
-                  'Are you running the simulation from the repl?')
+        # cannot save on the h5 file if using the repl
+        print('Caller source not saved. '
+              'Are you running the simulation from the repl?')
