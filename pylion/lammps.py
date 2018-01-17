@@ -65,7 +65,12 @@ class Ions(CfgObject):
     def __call__(self, *args, **kwargs):
         self.odict = super().__call__(*args, **kwargs)
 
-        uid = _unique_id(self.func, *args)
+        # if function, charge, mass and rigid are the same it's probably the
+        # same ion definiton. Don't increment the set count.
+        charge, mass = self.odict['charge'], self.odict['mass']
+        rigid = self.odict.get('rigid', False)
+
+        uid = _unique_id(self.func, charge, mass, rigid)
         Ions._ids.add(uid)
 
         self.odict['uid'] = len(Ions._ids)
