@@ -3,18 +3,11 @@ import os
 from termcolor import colored
 import functools
 
-# todo change getfullargspec to signature objects
 
-
-# or just use https://prettyprinter.readthedocs.io/en/latest/ instead of doing
-# manual string formatting.
-# https://tommikaikkonen.github.io/introducing-prettyprinter-for-python/
-def pretty(_cls):
+def pretty_repr(_cls):
     def _repr(self):
         title = colored('signature', 'red')
         lines = f'\n{title}: {self.__name__}{inspect.signature(_cls)}\n'
-        # lines = f'signature: {inspect.getfullargspec(func)}()\n'
-        # lines += f'defaults: {func.__defaults__}\n'
         title = colored('docstring', 'red')
         lines += f'{title}: {inspect.getdoc(self)}\n'
         title = colored('file', 'red')
@@ -26,30 +19,20 @@ def pretty(_cls):
     return _cls
 
 
-# I could allow for id to be any positional argument but for now I'll keep it
-# as mandatory leftmost
 def validate_id(func):
     @functools.wraps(func)
     def wrapper(*args):
-        f = args[0]
-        # check that the first argument of the pass function is 'uid'
-        if not inspect.getfullargspec(f).args[0] == 'uid':
-            raise TypeError("First argument needs to be 'uid'.")
+        _func = args[0]
+        # check that the leftmost argument of the pass function is 'uid'
+        for param in inspect.signature(_func).parameters:
+            if param == 'uid':
+                break
+            else:
+                raise TypeError("First argument needs to be 'uid'.")
 
         cfg = func(*args)
         cfg._unique_id = True
         return cfg
-    return wrapper
-
-
-def validate_vars(func):
-    @functools.wraps(func)
-    def wrapper(*args):
-        f = args[0]
-        if 'variables' not in inspect.getfullargspec(f).args:
-            raise TypeError("Could not find 'variables' kwarg.")
-
-        return func(*args)
     return wrapper
 
 
@@ -59,6 +42,17 @@ def _unique_id(*args):
     uid = sum([id(arg) for arg in args])
     uid &= 0xFFF
     return uid
+
+
+# def validate_vars(func):
+#     @functools.wraps(func)
+#     def wrapper(*args):
+#         f = args[0]
+#         if 'variables' not in inspect.getfullargspec(f).args:
+#             raise TypeError("Could not find 'variables' kwarg.")
+
+#         return func(*args)
+#     return wrapper
 
 
 # def returns(*keys):

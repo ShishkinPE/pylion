@@ -1,11 +1,8 @@
-from .utils import validate_id, _unique_id, pretty
+from .utils import validate_id, _unique_id, pretty_repr
 import functools
 
 
-# todo pretty repr as decorator. if getattr self.func is None don't change repr
-# since I don update_wrapper can't I just call the class dunders rather than
-# the ones from self.func?
-@pretty
+@pretty_repr
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
 
@@ -17,13 +14,6 @@ class CfgObject:
         if required_keys:
             self.odict.update(dict.fromkeys(required_keys))
 
-        # self.odict['type'] = lmp_type
-
-        # keep a set of ids to  make sure a second call to the same object
-        # is only allowed with different input arguments
-        # todo I don't need this anymore. It's not doing anything anyway.
-        self.ids = set()
-
         # add dunder attrs from func
         functools.update_wrapper(self, func)
 
@@ -32,18 +22,13 @@ class CfgObject:
         func = self.func
 
         if getattr(self, '_unique_id', False):
-            uid = _unique_id(self.func, *args)
-
-            # this is too strict since I cannot even have the same object in
-            # python namespace.
-            # if uid in self.ids:
-            #     lmp_type = self.odict['type']
-            #     raise TypeError(f'Reusing {lmp_type} with same parameters.')
-            self.ids.add(uid)
+            uid = _unique_id(func, *args)
             self.odict['uid'] = uid
-
             func = functools.partial(self.func, uid)
+
         self.odict.update(func(*args, **kwargs))
+        if not hasattr(self.odict['code'], '__iter__'):
+            raise TypeError("'code' should be a list of strings.")
 
         return self.odict.copy()
 
@@ -84,14 +69,16 @@ class Variable(CfgObject):
                     "variables with the prefix 'v_'.")
 
         self.odict = super().__call__(*args, **kwargs)
-        # I can look for the words fix or variable in code to check type
 
-        pre = 'f_'
-        if self.odict['vtype'] == 'var':
-            pre = 'v_'
+        # vtype can only be 'fix' or 'var'
+        prefix = {'fix': 'f_', 'var': 'v_'}
+        vtype - self.odict['vtype']
 
         name = self.odict['uid']
-        output = ' '.join([f'{pre}{name}[{i}]' for i in range(1, 4)])
+
+        # this is not necessary anymore
+        output = ' '.join([f'{prefix[vtype]}{name}[{i}]'
+                           for i in range(1, len(vs))])
 
         self.odict.update({'output': output})
 

@@ -22,7 +22,7 @@ class TestPylion(unittest.TestCase):
                          variables=['x', 'y', 'z']))
 
         s.append(pl.evolve(10000))
-
+        s._writeinputfile()
         # s.execute()
 
     def tearDown(self):
@@ -40,8 +40,8 @@ class TestPylion(unittest.TestCase):
         ay = np.max(abs(y), 0) - np.min(abs(y), 0)
         amplitude = np.sqrt(ax**2 + ay**2)
 
-        plt.plot(np.sort(amplitude)[::-1])
-        plt.show()
+        # plt.plot(np.sort(amplitude)[::-1])
+        # plt.show()
 
         # todo change the assertion to something meaningful
         for amp in amplitude:

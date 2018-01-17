@@ -42,7 +42,12 @@ class TestPylion(unittest.TestCase):
 
     # todo
     # test using more ions than you should
-    # test...
+    # test code returns iterable
+    # test same uids
+    # test adding non-dict in simulation
+    # test ordering
+    # test contains
+
 
 if __name__ == '__main__':
     unittest.main()

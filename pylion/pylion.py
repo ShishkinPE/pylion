@@ -108,16 +108,17 @@ class Simulation(list):
 
     def _writeinputfile(self):
         self.attrs['version'] = __version__
-        self.attrs.setdefault('rigid', {'exists': False})
+        self.attrs['rigid'] = {'exists': False}
 
         self.sort()  # if 'priority' keys exist
 
         odict = {key: [] for key in ['species', 'simulation']}
+        # deal the items in odict
         for idx, item in enumerate(self):
             if item.get('type') == 'ions':
                 odict['species'].append(item)
                 if item.get('rigid'):
-                    self.attrs['rigid'] = {'exists': True}
+                    self.attrs['rigid']['exists'] = True
                     self.attrs['rigid'].setdefault('groups', []).append(idx+1)
             else:
                 odict['simulation'].append(item)
