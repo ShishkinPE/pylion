@@ -1,11 +1,12 @@
 import unittest
 import pylion as pl
 import numpy as np
+import os
 
 
 def posintheory():
-    """"Gets theoretical positions of ions in a linear
-    paul trap when a chain configuration is formed. Adapted from 'Quantum
+    """"Theoretical positions of ions in a linear Paul trap when a chain
+    configuration is formed. Adapted from 'Quantum
     dynamics of cold trapped ions with application to quantum computation'
     by DFV James, App. Phys. B 1998
     """
@@ -28,17 +29,41 @@ def posintheory():
     return pos
 
 
-def lengthscale(a, rf, charge, mass):
+def nmintheory():
+    """"Theoretical normal modes of ions in a linear
+    paul trap when a chain configuration is formed. Adapted from 'Quantum
+    dynamics of cold trapped ions with application to quantum computation'
+    by DFV James, App. Phys. B 1998
+    """
+
+    values = [[1, 3],
+              [1, 3, 5.8],
+              [1, 3, 5.81, 9.308],
+              [1, 3, 5.818, 9.332, 13.47],
+              [1, 3, 5.824, 9.352, 13.51, 18.27],
+              [1, 3, 5.829, 9.369, 13.55, 18.32, 23.66],
+              [1, 3, 5.834, 9.383, 13.58, 18.37, 23.73, 29.63],
+              [1, 3, 5.838, 9.396, 13.6, 18.41, 23.79, 29.71, 36.16],
+              [1, 3, 5.841, 9.408, 13.63, 18.45, 23.85, 29.79, 36.26, 43.24]]
+
+    return values
+
+
+def lengthscale(trap, ions):
+    a = trap['a']
+    rf = trap['frequency']
+    charge = ions['charge']
+    mass = ions['mass']
+
     qz = 0
     az = -2 * a
     omega_z = 2*np.pi * rf/2 * np.sqrt(qz**2 / 2 + az)
 
-    return ((charge * 1.6e-19)**2 / (4 * np.pi * 8.85e-12) /
+    return ((charge * 1.6e-19)**2 / (4*np.pi * 8.85e-12) /
             (mass * 1.66e-27 * omega_z**2))**(1/3)
 
 
 class TestPylion(unittest.TestCase):
-    """Tests for pylion package."""
 
     def setUp(self):
         ions = {'mass': 40, 'charge': 1}
@@ -49,7 +74,7 @@ class TestPylion(unittest.TestCase):
         self.ions = ions
         self.trap = trap
 
-        self.range = [2, 3]
+        self.range = [2, 3, 5, 7, 8]
 
         for number in self.range:
             s = pl.Simulation(str(number))
@@ -64,27 +89,23 @@ class TestPylion(unittest.TestCase):
             s.execute()
 
     def tearDown(self):
-        """Tear down test fixtures, if any."""
+        # delete the generated files
+        filenames = ['log.lammps']
+        for number in self.range:
+            group = [f'positions{number}.txt', f'{number}.h5',
+                     f'{number}.lammps']
+            filenames.extend(group)
+        for filename in filenames:
+            os.remove(filename)
 
     def test_equilibriumseparation(self):
         for number in self.range:
-            _, data = pl.readdump(f'positions{number}.txt')
+            with self.subTest(number=number):
+                _, data = pl.readdump(f'positions{number}.txt')
 
-            lscale = lengthscale(self.trap['a'], self.trap['frequency'],
-                                 self.ions['charge'], self.ions['mass'])
+                lscale = lengthscale(self.trap, self.ions)
+                pos = posintheory()
 
-            print(data[-1, :, 2])
-            pos = posintheory()
-
-            for d, p in zip(data[-1, :, 2], pos[number]):
-                self.assertAlmostEqual(d, lscale*p, 2)
-
-    # def test_normalmodes(self):
-    #     pass
-    # def runTest(self):
-
-    # def tearDown(self):
-
-    #     for fid in os.listdir(os.path.dirname(os.path.realpath(__file__))):
-    #         if os.path.splitext(fid)[1] == '.txt':
-    #             os.remove(fid)
+                # test that the final position is close to the theoretical
+                for d, p in zip(data[-1, :, 2], pos[number]):
+                    self.assertAlmostEqual(d, lscale*p, 2)

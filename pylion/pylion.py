@@ -176,7 +176,7 @@ class Simulation(list):
         signal.signal(signal.SIGINT, signal_handler)
 
         child = pexpect.spawn(' '.join([self.attrs['executable'], '-in',
-                              self.attrs['name'] + '.lammps']), timeout=30,
+                              self.attrs['name'] + '.lammps']), timeout=None,
                               encoding='utf8')
 
         self._process_stdout(child)
