@@ -55,8 +55,10 @@ class Simulation(list):
             pass
 
     def __contains__(self, this):
-        # raise SimulationError("Element does not have 'uid' key.")
-        return this['uid'] in self._uids
+        try:
+            return this['uid'] in self._uids
+        except KeyError:
+            print("Item does not have a 'uid' key.")
 
     def append(self, this):
         # only allow for dicts in the list
