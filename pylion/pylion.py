@@ -5,14 +5,29 @@ import jinja2 as j2
 import json
 import inspect
 from datetime import datetime
+import sys
+import time
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 
 class SimulationError(Exception):
-    """Custom error class for Simulation.
-    """
+    """Custom error class for Simulation."""
     pass
+
+
+class Attributes(dict):
+    """Light dict wrapper to serve as a container of attributes."""
+
+    def save(self, filename):
+        with h5py.File(filename) as f:
+            print(f'Saving attributes to {filename}')
+            f.attrs.update({k: json.dumps(v)
+                            for k, v in self.items()})
+
+    def load(self, filename):
+        with h5py.File(filename, 'r') as f:
+            return {k: json.loads(v) for k, v in f.attrs.items()}
 
 
 class Simulation(list):
@@ -26,7 +41,7 @@ class Simulation(list):
         # slugify 'name' to use for filename
         name = name.replace(' ', '_').lower()
 
-        self.attrs = {}
+        self.attrs = Attributes()
         self.attrs['executable'] = '/Applications/lammps-31Mar17/src/lmp_serial'
         self.attrs['timestep'] = 1e-6
         self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
@@ -35,24 +50,15 @@ class Simulation(list):
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
 
-        # make the h5 file so all other operations can append
+        # initalise the h5 file
         with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
             pass
 
-    def _saveattrs(self):
-        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
-            # serialise them before saving so that h5 is happy no matter
-            # what you throw at it
-            f.attrs.update({k: json.dumps(v)
-                            for k, v in self.attrs.items()})
-
-    def _loadattrs(self):
-        with h5py.File(self.attrs['name'] + '.h5', 'r') as f:
-            return {k: json.loads(v) for k, v in f.attrs.items()}
-
     def __contains__(self, this):
-        # raise SimulationError("Element does not have 'uid' key.")
-        return this['uid'] in self._uids
+        try:
+            return this['uid'] in self._uids
+        except KeyError:
+            print("Item does not have a 'uid' key.")
 
     def append(self, this):
         # only allow for dicts in the list
@@ -111,6 +117,14 @@ class Simulation(list):
             else:
                 odict['simulation'].append(item)
 
+        # do a couple of checks
+        # check for uids clashing
+        uids = list(filter(None.__ne__, self._uids))
+        if len(uids) > len(set(uids)):
+            raise SimulationError(
+                "There are identical 'uids'. Although this is allowed in some "
+                " cases, 'lammps' is probably not going to like it.")
+
         # make sure species will behave
         maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
         if maxuid > len(odict['species']):
@@ -130,33 +144,45 @@ class Simulation(list):
 
         # get a few more attrs
         self.attrs['time'] = datetime.now().isoformat()
-        for item in odict['simulation']:
-            if item.get('type') == 'fix':
-                for line in item['code']:
-                    if line.startswith('dump'):
-                        filename = line.split()[5]
-                        self.attrs.setdefault('output_files', []).append(filename)
+
+        # and the name of the output files
+        fixes = filter(lambda item: item.get('type') == 'fix',
+                       odict['simulation'])
+        self.attrs['output_files'] = [line.split()[5] for fix in fixes
+                                      for line in fix['code']
+                                      if line.startswith('dump')]
 
         # save attrs and scripts to h5 file
-        self._saveattrs()
+        self.attrs.save(self.attrs['name'] + '.h5')
         self._savecallersource()
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
+        # give it some time to write everything to the h5 file
+        time.sleep(1)
+
     def execute(self):
+
+        if getattr(self, '_hasexecuted', False):
+            print('Simulation has executed already. Do not run it again.')
+            return
+
         self._writeinputfile()
 
         def signal_handler(sig, frame):
-            print('Simulation terminated by the user')
+            print('Simulation terminated by the user.')
             child.terminate()
             # sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
 
         child = pexpect.spawn(' '.join([self.attrs['executable'], '-in',
-                              self.attrs['name'] + '.lammps']), timeout=300)
+                              self.attrs['name'] + '.lammps']), timeout=None,
+                              encoding='utf8')
 
         self._process_stdout(child)
         child.close()
+
+        self._hasexecuted = True
 
         for filename in self.attrs['output_files'] + ['log.lammps']:
             self._savescriptsource(filename)
@@ -164,35 +190,38 @@ class Simulation(list):
     def _process_stdout(self, child):
         atoms = 0
         for line in child:
-            if line == b'Created 1 atoms\r\n':
+            line = line.rstrip('\r\n')
+            if line == 'Created 1 atoms':
                 atoms += 1
                 continue
+            elif line == 'Created 0 atoms':
+                raise SimulationError(
+                    'lammps created 0 atoms - perhaps you placed ions '
+                    'with positions outside the simulation domain?')
 
             if atoms:
                 print(f'Created {atoms} atoms.')
                 atoms = False
                 continue
 
-            print(line.decode(), end='')
-
-            if line == b'Created 0 atoms\r\n':
-                raise SimulationError(
-                    'lammps created 0 atoms - perhaps you placed ions '
-                    'with positions outside the simulation domain?')
+            print(line)
 
     def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5', 'r+') as f:
+        with h5py.File(self.attrs['name'] + '.h5') as f:
             with open(script, 'rb') as pf:
                 lines = pf.readlines()
                 f.create_dataset(script, data=lines)
 
     def _savecallersource(self):
-        frame = inspect.stack()[-1]
-        caller = frame.filename
+        # inspect the first four frames of the stack to find the correct
+        # filename. This covers calling from execute() or _writeinputfile().
+        # if the stack is indeed larger than this it's probably the REPL.
+        stack = inspect.stack()[:4]
+        for frame in stack:
+            if sys.argv[0] == frame.filename:
+                self._savescriptsource(frame.filename)
+                return
 
-        try:
-            self._savescriptsource(caller)
-        except IOError:
-            # cannot save on the h5 file if using the repl
-            print('Caller source not saved. '
-                  'Are you running the simulation from the repl?')
+        # cannot save on the h5 file if using the repl
+        print('Caller source not saved. '
+              'Are you running the simulation from the repl?')

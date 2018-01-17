@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name='pylion',
-    version='0.3.2',
+    version='0.3.3',
     description="A LAMMPS wrapper for molecular dynamics simulations of trapped ions.",
     long_description=readme,
     author="Dimitris Trypogeorgos",

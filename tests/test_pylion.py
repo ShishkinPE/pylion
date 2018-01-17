@@ -1,5 +1,7 @@
 import unittest
 import pylion as pl
+from pylion.pylion import SimulationError
+import os
 
 
 class TestPylion(unittest.TestCase):
@@ -9,19 +11,38 @@ class TestPylion(unittest.TestCase):
         """Set up test fixtures, if any."""
 
     def tearDown(self):
-        """Tear down test fixtures, if any."""
+        for filename in ['test.h5', 'test.lammps']:
+            os.remove(filename)
 
     def test_unique_id(self):
         """Test unique ids."""
 
-        pl.efield(1, 1, 1)
+        s = pl.Simulation('test')
+
+        s.append(pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10))
+        s.append(pl.efield(1, 1, 1))
+
+        # all good if I change the parameters a bit
+        s.append(pl.efield(1, 1, 1.1))
+        s._writeinputfile()
 
         # all good if I change an argument
-        pl.efield(1, 1, 1.1)
+        s.append(pl.efield(1, 1, 1))
 
-        # if I call it again with the same params it should raise an error
-        with self.assertRaises(TypeError):
-            pl.efield(1, 1, 1)
+        # simulation with the same uids should, test for that
+        with self.assertRaises(SimulationError):
+            s._writeinputfile()
+
+    def test_noatoms(self):
+        s = pl.Simulation('test')
+
+        with self.assertRaises(ValueError):
+            s._writeinputfile()
+
+
+    # todo
+    # test using more ions than you should
+    # test...
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,6 +2,17 @@ from .utils import _pretty_repr, validate_id
 import functools
 
 
+def _unique_id(*args):
+    uid = 0
+    for arg in args:
+        uid += id(arg)
+    # extract 2 least significant bytes. that should be enough
+    # to make sure ids are unique and it's sensitive to small changes
+    # in the input arguments
+    uid &= 0xFFF
+    return uid
+
+
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
 
@@ -16,6 +27,8 @@ class CfgObject:
 
         # keep a set of ids to  make sure a second call to the same object
         # is only allowed with different input arguments
+        # I could make this a class attribute so it is guaranteed
+        # that no ids clash, like in Ions
         self.ids = set()
 
         # add dunder attrs from func
@@ -26,17 +39,13 @@ class CfgObject:
         func = self.func
 
         if getattr(self, '_unique_id', False):
-            # uid = _unique_id(self.func, args)
-            uid = 0
-            for arg in [self.func, *args]:
-                uid += id(arg)
-            # extract 2 least significant bytes. that should be enough
-            # to make sure ids are unique and it's sensitive to small changes
-            # in the input arguments
-            uid &= 0xFFF
-            if uid in self.ids:
-                lmp_type = self.odict['type']
-                raise TypeError(f'Reusing {lmp_type} with same parameters.')
+            uid = _unique_id(self.func, *args)
+
+            # this is too strict since I cannot even have the same object in
+            # python namespace.
+            # if uid in self.ids:
+            #     lmp_type = self.odict['type']
+            #     raise TypeError(f'Reusing {lmp_type} with same parameters.')
             self.ids.add(uid)
             self.odict['uid'] = uid
 
@@ -50,13 +59,21 @@ class CfgObject:
 
 
 class Ions(CfgObject):
-    _instance = 1
+    # need to handle this in the class namespace
+    _ids = set()
 
     def __call__(self, *args, **kwargs):
         self.odict = super().__call__(*args, **kwargs)
 
-        self.odict['uid'] = Ions._instance
-        Ions._instance += 1
+        # if function, charge, mass and rigid are the same it's probably the
+        # same ion definiton. Don't increment the set count.
+        charge, mass = self.odict['charge'], self.odict['mass']
+        rigid = self.odict.get('rigid', False)
+
+        uid = _unique_id(self.func, charge, mass, rigid)
+        Ions._ids.add(uid)
+
+        self.odict['uid'] = len(Ions._ids)
 
         return self.odict.copy()
 

@@ -15,8 +15,8 @@ make yes-misc
 make serial
 
 # other useful commands
-make package (list available packages and help)
-make ps (list package status)
+make package # list available packages and help
+make ps # list package status
 ~~~~
 
 This will make the `lmp-serial` executable.
@@ -31,6 +31,13 @@ We suggest using the Anaconda python distribution that comes batteries included.
 To make the documentation use `make html` in the documentation folder.
 
 Free software: MIT license
+
+## Tests
+
+Run all autodiscovered tests with `python -m unittest` will take a few minutes.
+The `tests/test_pylion.py` is for implementation details. You can run this only while developing which will be much faster.
+The other tests are slower because they test for correct phyisics and have to run a bunch of simulations.
+
 
 ## Features
 

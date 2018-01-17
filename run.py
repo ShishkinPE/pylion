@@ -3,6 +3,7 @@ from datetime import datetime
 
 ions = {'mass': 100, 'charge': 1}
 ions1 = pl.createioncloud(ions, 1e-5, 1)
+ions1 = pl.createioncloud(ions, 1e-5, 1)
 
 ions2 = pl.placeions(ions, [[1, 2, 3]])
 
@@ -14,7 +15,7 @@ print(ions2, id(pl.placeions))
 # name = 'pylion testing'
 # # name += now.strftime('_%Y%m%d_%H%M.h5')
 
-# s = pl.Simulation(name)
+# s = pl.Simulation('banana')
 
 # ions = {'mass': 100, 'charge': 1}
 # ions = pl.createioncloud(ions, 1e-5, 10)
