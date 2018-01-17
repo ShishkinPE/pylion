@@ -1,16 +1,19 @@
 import pylion as pl
 from datetime import datetime
 
-ions = {'mass': 100, 'charge': 1}
-ions1 = pl.createioncloud(ions, 1e-5, 1)
-ions1 = pl.createioncloud(ions, 1e-5, 1)
+# ions = {'mass': 100, 'charge': 1}
+# ions1 = pl.createioncloud(ions, 1e-5, 1)
+# ions1 = pl.createioncloud(ions, 1e-5, 1)
 
-ions2 = pl.placeions(ions, [[1, 2, 3]])
+# ions2 = pl.placeions(ions, [[1, 2, 3]])
+# print(pl.placeions)
 
-print(ions1, id(pl.createioncloud))
-print()
-print(ions2, id(pl.placeions))
+# print(ions1, id(pl.createioncloud))
+# print()
+# print(ions2, id(pl.placeions))
 
+efield = pl.efield(1, 1, 1)
+print(pl.efield)
 # now = datetime.now()
 # name = 'pylion testing'
 # # name += now.strftime('_%Y%m%d_%H%M.h5')

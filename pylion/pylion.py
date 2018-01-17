@@ -11,6 +11,9 @@ import time
 __version__ = '0.3.3'
 
 
+# todo get rid of .github folder. is it from the template?
+
+
 class SimulationError(Exception):
     """Custom error class for Simulation."""
     pass
@@ -62,7 +65,9 @@ class Simulation(list):
 
     def append(self, this):
         # only allow for dicts in the list
-        assert isinstance(this, dict)
+        if not isinstance(this, dict):
+            raise SimulationError("Only 'dicts' are allowed in Simulation().")
+
         try:
             self._uids.append(this['uid'])
             # ions will always be included first so to sort you have
@@ -130,8 +135,8 @@ class Simulation(list):
         if maxuid > len(odict['species']):
             raise SimulationError(
                 "Max 'uid' of species is larger than the number of species. "
-                "Calling '@lammps.ions' decorated functions "
-                "always increments the 'uid' count.")
+                "Calling '@lammps.ions' decorated functions increments the "
+                "'uid' count unless it is for the same ion group.")
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),

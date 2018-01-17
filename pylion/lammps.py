@@ -1,34 +1,27 @@
-from .utils import _pretty_repr, validate_id
+from .utils import validate_id, _unique_id, pretty
 import functools
 
 
-def _unique_id(*args):
-    uid = 0
-    for arg in args:
-        uid += id(arg)
-    # extract 2 least significant bytes. that should be enough
-    # to make sure ids are unique and it's sensitive to small changes
-    # in the input arguments
-    uid &= 0xFFF
-    return uid
-
-
+# todo pretty repr as decorator. if getattr self.func is None don't change repr
+# since I don update_wrapper can't I just call the class dunders rather than
+# the ones from self.func?
+@pretty
 class CfgObject:
     def __init__(self, func, lmp_type, required_keys=None):
 
         self.func = func
 
         # use default keys and update if there is anything else
-        self.odict = dict.fromkeys(('code', 'type'))
+        # __call__ will overwrite code except for ions
+        self.odict = dict.fromkeys(('code', 'type'), lmp_type)
         if required_keys:
             self.odict.update(dict.fromkeys(required_keys))
 
-        self.odict.update({'type': lmp_type})
+        # self.odict['type'] = lmp_type
 
         # keep a set of ids to  make sure a second call to the same object
         # is only allowed with different input arguments
-        # I could make this a class attribute so it is guaranteed
-        # that no ids clash, like in Ions
+        # todo I don't need this anymore. It's not doing anything anyway.
         self.ids = set()
 
         # add dunder attrs from func
@@ -54,9 +47,6 @@ class CfgObject:
 
         return self.odict.copy()
 
-    def __repr__(self):
-        return _pretty_repr(self.func)
-
 
 class Ions(CfgObject):
     # need to handle this in the class namespace
@@ -66,7 +56,7 @@ class Ions(CfgObject):
         self.odict = super().__call__(*args, **kwargs)
 
         # if function, charge, mass and rigid are the same it's probably the
-        # same ion definiton. Don't increment the set count.
+        # same ions definition. Don't increment the set count.
         charge, mass = self.odict['charge'], self.odict['mass']
         rigid = self.odict.get('rigid', False)
 
@@ -122,7 +112,7 @@ class lammps:
 
     def variable(vtype):
         @validate_id
-        # @validate_vars  # need kwarg variables
+        # @validate_vars  # todo need kwarg variables?
         def decorator(func):
             return Variable(func, 'variable',
                             required_keys=['output', 'vtype'])
