@@ -47,6 +47,7 @@ class TestPylion(unittest.TestCase):
     # test adding non-dict in simulation
     # test ordering
     # test contains
+    # test many rigid groups
 
 
 if __name__ == '__main__':
