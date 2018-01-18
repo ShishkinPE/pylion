@@ -10,7 +10,8 @@ class CfgObject:
 
         # use default keys and update if there is anything else
         # __call__ will overwrite code except for ions
-        self.odict = dict.fromkeys(('code', 'type'), lmp_type)
+        self.odict = dict.fromkeys(('code', 'type'), [])
+        self.odict['type'] = lmp_type
         if required_keys:
             self.odict.update(dict.fromkeys(required_keys))
 
@@ -27,7 +28,7 @@ class CfgObject:
             func = functools.partial(self.func, uid)
 
         self.odict.update(func(*args, **kwargs))
-        if not hasattr(self.odict['code'], '__iter__'):
+        if not isinstance(self.odict['code'], list):
             raise TypeError("'code' should be a list of strings.")
 
         return self.odict.copy()
@@ -71,16 +72,16 @@ class Variable(CfgObject):
         self.odict = super().__call__(*args, **kwargs)
 
         # vtype can only be 'fix' or 'var'
-        prefix = {'fix': 'f_', 'var': 'v_'}
-        vtype - self.odict['vtype']
+        # prefix = {'fix': 'f_', 'var': 'v_'}
+        # vtype - self.odict['vtype']
 
-        name = self.odict['uid']
+        # name = self.odict['uid']
 
         # this is not necessary anymore
-        output = ' '.join([f'{prefix[vtype]}{name}[{i}]'
-                           for i in range(1, len(vs))])
+        # output = ' '.join([f'{prefix[vtype]}{name}[{i}]'
+        #                    for i in range(1, len(vs))])
 
-        self.odict.update({'output': output})
+        # self.odict.update({'output': output})
 
         return self.odict.copy()
 

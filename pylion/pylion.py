@@ -11,9 +11,6 @@ import time
 __version__ = '0.3.3'
 
 
-# todo get rid of .github folder. is it from the template?
-
-
 class SimulationError(Exception):
     """Custom error class for Simulation."""
     pass
@@ -52,6 +49,8 @@ class Simulation(list):
         self.attrs['neighbour'] = {'skin': 1, 'list': 'nsq'}
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
+        self.attrs['version'] = __version__
+        self.attrs['rigid'] = {'exists': False}
 
         # initalise the h5 file
         with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
@@ -70,10 +69,15 @@ class Simulation(list):
 
         try:
             self._uids.append(this['uid'])
+
             # ions will always be included first so to sort you have
             # to give 1-count 'priority' keys to the rest
             if this.get('type') == 'ions':
                 this['priority'] = 0
+                if this.get('rigid'):
+                    self.attrs['rigid']['exists'] = True
+                    self.attrs['rigid'].setdefault('groups',
+                                                   []).append(this['uid'])
         except KeyError:
             # append None to make sure len(self._uids) == len(self.data)
             self._uids.append(None)
@@ -107,21 +111,26 @@ class Simulation(list):
             # Not all elements have 'priority' keys. Cannot sort list
 
     def _writeinputfile(self):
-        self.attrs['version'] = __version__
-        self.attrs['rigid'] = {'exists': False}
 
         self.sort()  # if 'priority' keys exist
 
         odict = {key: [] for key in ['species', 'simulation']}
         # deal the items in odict
-        for idx, item in enumerate(self):
+        for item in self:
             if item.get('type') == 'ions':
                 odict['species'].append(item)
-                if item.get('rigid'):
-                    self.attrs['rigid']['exists'] = True
-                    self.attrs['rigid'].setdefault('groups', []).append(idx+1)
             else:
                 odict['simulation'].append(item)
+
+        # for idx, item in enumerate(self):
+        #     if item.get('type') == 'ions':
+        #         odict['species'].append(item)
+        #         if item.get('rigid'):
+        #             self.attrs['rigid']['exists'] = True
+        #             self.attrs['rigid'].setdefault('groups', []).append(idx+1)
+        #     else:
+        #         odict['simulation'].append(item)
+
 
         # do a couple of checks
         # check for uids clashing
@@ -164,7 +173,7 @@ class Simulation(list):
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
         # give it some time to write everything to the h5 file
-        time.sleep(1)
+        time.sleep(0.5)
 
     def execute(self):
 
