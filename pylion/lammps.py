@@ -57,10 +57,13 @@ class Ions(CfgObject):
 class Variable(CfgObject):
 
     def __call__(self, *args, **kwargs):
-        # only support fix type variables
-        # var type variables are easier to add with custom code
+        # vtype can only be 'fix' or 'var'
+        # var type variables are easy to add with custom code
 
-        vs = kwargs['variables']
+        # be nice and only do the check if 'variables' is found in the args
+        # otherwise it will pass anyway since the empty set is a subset of
+        # any set
+        vs = kwargs.get('variables', [])
         allowed = {'id', 'x', 'y', 'z', 'vx', 'vy', 'vz'}
         if not set(vs).issubset(allowed):
             prefix = [item.startswith('v_') for item in vs]
@@ -71,16 +74,11 @@ class Variable(CfgObject):
 
         self.odict = super().__call__(*args, **kwargs)
 
-        # vtype can only be 'fix' or 'var'
         # prefix = {'fix': 'f_', 'var': 'v_'}
         # vtype - self.odict['vtype']
-
         # name = self.odict['uid']
-
-        # this is not necessary anymore
         # output = ' '.join([f'{prefix[vtype]}{name}[{i}]'
         #                    for i in range(1, len(vs))])
-
         # self.odict.update({'output': output})
 
         return self.odict.copy()
@@ -100,7 +98,7 @@ class lammps:
 
     def variable(vtype):
         @validate_id
-        # @validate_vars  # todo need kwarg variables?
+        # @validate_vars
         def decorator(func):
             return Variable(func, 'variable',
                             required_keys=['output', 'vtype'])

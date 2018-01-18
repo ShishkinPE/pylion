@@ -122,16 +122,6 @@ class Simulation(list):
             else:
                 odict['simulation'].append(item)
 
-        # for idx, item in enumerate(self):
-        #     if item.get('type') == 'ions':
-        #         odict['species'].append(item)
-        #         if item.get('rigid'):
-        #             self.attrs['rigid']['exists'] = True
-        #             self.attrs['rigid'].setdefault('groups', []).append(idx+1)
-        #     else:
-        #         odict['simulation'].append(item)
-
-
         # do a couple of checks
         # check for uids clashing
         uids = list(filter(None.__ne__, self._uids))

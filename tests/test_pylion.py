@@ -22,7 +22,10 @@ class TestPylion(unittest.TestCase):
 
         s = pl.Simulation('test')
 
-        s.append(pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10))
+        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
+        # make sure other ions in test don't conflict with this
+        ions['uid'] = 1
+        s.append(ions)
         s.append(pl.efield(1, 1, 1))
 
         # all good if I change the parameters a bit
@@ -127,9 +130,31 @@ class TestPylion(unittest.TestCase):
                    for item, i in zip(s, [2, 7, 8])]
         self.assertTrue(all(ordered))
 
-    # todo
-    # test contains
-    # test many rigid groups
+    def test_contains(self):
+        s = pl.Simulation('test')
+        efield = pl.efield(1, 1, 1)
+        s.append(efield)
+
+        self.assertTrue(efield in s)
+
+    def test_rigid(self):
+        s = pl.Simulation('test')
+        ions = pl.createioncloud({'charge': 3, 'mass':  10}, 1e-3, 10)
+        ions['rigid'] = True
+        s.append(ions)
+
+        ions = pl.createioncloud({'charge': 2, 'mass':  20}, 1e-3, 10)
+        ions['rigid'] = True
+        s.append(ions)
+
+        self.assertTrue(s.attrs['rigid']['exists'])
+        self.assertTrue(len(s.attrs['rigid']['groups']) == 2)
+
+    def test_variables(self):
+        # test passes even without 'variables' arg
+        @pl.lammps.variable('fix')
+        def variable(uid):
+            return {}
 
 
 if __name__ == '__main__':
