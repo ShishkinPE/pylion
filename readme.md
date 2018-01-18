@@ -38,6 +38,18 @@ Run all autodiscovered tests with `python -m unittest` will take a few minutes.
 The `tests/test_pylion.py` is for implementation details. You can run this only while developing which will be much faster.
 The other tests are slower because they test for correct phyisics and have to run a bunch of simulations.
 
+## Documentation
+
+You will need `sphinx` and the `sphix_rtd_theme` to build the documentation.
+Both can be installed with:
+
+~~~bash
+pip install sphinx # or conda install sphinx
+pip install sphinx_rtd_theme
+~~~
+
+If you're using Anaconda you probably have `sphinx` already.
+Go to the docs folder folder and run `make html` or whatever format you prefer.
 
 ## Features
 
@@ -47,8 +59,6 @@ The other tests are slower because they test for correct phyisics and have to ru
 
 * Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
-If you find this software useful in your research please cite:
-
-1. [D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
-
-2. [C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)
+If you find this software useful in your research please cite:  
+[D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)  
+[C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)
