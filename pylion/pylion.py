@@ -57,12 +57,19 @@ class Simulation(list):
             pass
 
     def __contains__(self, this):
+        """Check if an item exists in the simulation using its ``uid``.
+        """
+
         try:
             return this['uid'] in self._uids
         except KeyError:
             print("Item does not have a 'uid' key.")
 
     def append(self, this):
+        """Appends the items and checks their attributes.
+        Their ``uid`` is logged if they have one.
+        """
+
         # only allow for dicts in the list
         if not isinstance(this, dict):
             raise SimulationError("Only 'dicts' are allowed in Simulation().")
@@ -90,20 +97,32 @@ class Simulation(list):
         super().append(this)
 
     def extend(self, iterable):
+        """Calls ``append`` on an iterable.
+        """
+
         for item in iterable:
             self.append(item)
 
     def index(self, this):
+        """Returns the index of an item using its ``uid``.
+        """
+
         return self._uids.index(this['uid'])
 
     def remove(self, this):
-        # use del if you really want to delete something or better yet don't
-        # add it to the simulation in the first place
+        """Will not remove anything from the simulation but rather from lammps.
+        It adds an ``unfix`` command when it's called.
+        Use del if you really want to delete something or better yet don't
+        add it to the simulation in the first place.
+        """
+
         code = ['\n# Deleting a fix', f"unfix {this['uid']}\n"]
         self.append({'code': code, 'type': 'command'})
 
     def sort(self):
-        # sort with 'priority' keys if found otherwise do nothing
+        """Sort with 'priority' keys if found otherwise do nothing.
+        """
+
         try:
             super().sort(key=lambda item: item['priority'])
         except KeyError:
@@ -166,6 +185,8 @@ class Simulation(list):
         time.sleep(0.5)
 
     def execute(self):
+        """Write lammps input file and run the simulation.
+        """
 
         if getattr(self, '_hasexecuted', False):
             print('Simulation has executed already. Do not run it again.')

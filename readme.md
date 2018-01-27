@@ -53,12 +53,12 @@ Go to the docs folder folder and run `make html` or whatever format you prefer.
 
 ## Features
 
-* Simulate multiple ion species in the same trp.
+* Simulate multiple ion species in the same trap.
 
 * Use multiple trap driving frequencies. See [Phys. Rev. A 94, 02360](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
 
 * Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
-If you find this software useful in your research please cite:  
-[D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)  
+If you find this software useful in your research please cite:
+[D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
 [C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)

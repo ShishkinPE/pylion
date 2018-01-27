@@ -1,0 +1,100 @@
+Extending pylion
+================
+
+For advanced users that know lammps.
+
+Describe classes.
+
+Say how to change the jinja2 template.
+
+Custom commands is just a dict with code. Decorate it if you want.
+For example look at batman.
+
+Functions in pylion are decorated according to the lammps type they belong to.
+This can be ``fix``, ``ions``, ``command``, or ``variable``.
+All functions except the ones ions return code.
+
+
+Testing
+-------
+
+Run unittest on pylion only when developing unless you're willing to wait.
+
+..
+.. List of classes and functions used in pyLion.
+..
+.. .. module:: pylion
+..
+.. Classes
+.. -------
+..
+.. The `LAMMPSSimulation` class is the main class that is used to define and execute
+.. a `LAMMPS` simulation.
+..
+.. .. autoclass:: Simulation
+..    :members:
+..    :special-members: __init__
+..
+.. .. module:: pyLIon.lammps
+..
+.. `Domain`, `AtomProperties`, `Position` and `Trap` subclass the `namedutple` class
+.. and are used to pass parameters in the simulation.
+..
+.. .. autoclass:: Domain
+..    :members:
+..    :special-members:
+..
+.. .. autoclass:: AtomProperties
+..    :members:
+..    :special-members:
+..
+.. .. autoclass:: Position
+..    :members:
+..    :special-members:
+..
+.. .. autoclass:: Trap
+..    :members:
+..    :special-members:
+..
+.. A number of other helper classes are defined. The class members are meant to be
+.. handled by the `LAMMPSSimulation` class rather than defined explicitly by the
+.. user. Please use the listed functions only so as to respect encapsulation. The
+.. classes are listed here for debugging purposes mainly.
+..
+.. .. autoclass:: Atoms
+.. .. autoclass:: CfgObject
+.. .. autoclass:: PrioritisedCfgObject
+.. .. autoclass:: LAMMPSFix
+.. .. autoclass:: LAMMPSRunCommand
+.. .. autoclass:: LAMMPSVariable
+..
+.. Functions
+.. ---------
+..
+.. .. module:: pyLIon.functions
+..
+.. The following functions are used to describe a `LAMMPS` simulation.
+..
+.. .. autofunction:: createioncloud
+.. .. autofunction:: placeatoms
+.. .. autofunction:: custom
+.. .. autofunction:: evolve
+.. .. autofunction:: thermalvelocities
+.. .. autofunction:: minimise
+.. .. autofunction:: dump
+.. .. autofunction:: efield
+.. .. autofunction:: nveintegrator
+.. .. autofunction:: ionneutralheating
+.. .. autofunction:: langevinbath
+.. .. autofunction:: lasercool
+.. .. autofunction:: linearpaultrap
+.. .. autofunction:: cylindricalSHO
+.. .. autofunction:: sho
+.. .. autofunction:: lammpsaverage
+.. .. autofunction:: squaresum
+.. .. autofunction:: readdump
+..
+..
+.. .. .. automodule:: pyLIon.lammps
+..    :members:
+..    :undoc-members:

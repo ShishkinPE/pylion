@@ -1,20 +1,17 @@
 from .lammps import lammps
 import numpy as np
 
-# todo fix docstrings
-
 
 @lammps.fix
 def efield(uid, ex, ey, ez):
-    """EFIELD Adds a uniform, time-independent e-field to the simulation.
-    Ex, Ey, Ez are the magnitudes of the electric field in V/m.
+    """Adds a uniform, time-independent e-field to the simulation.
+    ex, ey, ez are the magnitudes of the electric field in V/m.
 
     See Also: http://lammps.sandia.gov/doc/fix_efield.html
 
     :param ex: x component of electric field
     :param ey: y component of electric field
     :param ez: z component of electric field
-    :return:
     """
 
     lines = ['\n# Static E-field',
@@ -25,9 +22,18 @@ def efield(uid, ex, ey, ez):
 
 @lammps.ions
 def placeions(ions, positions):
-    # each atom is a dict with keys 'charge', 'mass'
+    """Places the given ions at the (x, y, z) coordinates specified.
 
-    # pos = _put_ions(uid, positions)
+    Example:
+
+    >>> ions = {'mass': 40, 'charge': 1}
+    >>> positions = [[1e-4, -0.5e-5, 0], [1e-4, 0, 0], [1e-4, 0.5e-5, 0]]
+    >>> placeions(ions, positions)
+
+    :param ions: dict with keys 'charge', 'mass'
+    :param positions: list of (x, y , z) coodrinates of each ion
+    """
+
     ions.update({'positions': positions})
 
     return ions
@@ -35,6 +41,16 @@ def placeions(ions, positions):
 
 @lammps.ions
 def createioncloud(ions, radius, number):
+    """Creates a cloud of ions that can be added to the trap.
+    LAMMPS does have a function that can create ions in a cloud-like
+    configuration, but it requires a lattice to be declared, and is
+    prone to overlapping ions. As a result, we instead calculate individual
+    positions and palce them by hand.
+
+    :param ions: dict with keys 'charge', 'mass'
+    :param radius: radius of cloud
+    :param number: number of atoms
+    """
 
     positions = []
 
@@ -54,6 +70,16 @@ def createioncloud(ions, radius, number):
 
 @lammps.command
 def evolve(steps):
+    """Evolves the lammps simulation for a certain number of steps.
+
+    See Also: http://lammps.sandia.gov/doc/run.html
+
+    Example:
+
+    >>> evolve(1e6)
+
+    :param steps: number of steps
+    """
 
     lines = ['\n# Run simulation',
              f'run {int(steps):d}\n']
@@ -63,6 +89,20 @@ def evolve(steps):
 
 @lammps.command
 def thermalvelocities(temperature, zerototalmomentum=True):
+    """Sets the velocities of the ions to those given by a thermal
+    distribution of input temperature (Kelvin). Set zeroTotalMom to 'True' if
+    the resulting ensemble should have zero total linear momentum.
+
+    Example:
+
+    >>> thermalVelocities(300, zerototalmomentum=False)
+
+    See Also: http://lammps.sandia.gov/doc/velocity.html
+
+    :param temperature: temperature of thermal distribution
+    :param zerototalmomentum: boolean
+    """
+
     seed = np.random.randint(1, 1e5)
 
     if zerototalmomentum:
@@ -77,7 +117,26 @@ def thermalvelocities(temperature, zerototalmomentum=True):
 
 @lammps.command
 def minimise(etol, ftol, maxiter, maxeval, maxdist):
-    # todo give some defaults here
+    """Perform an energy minimization of the system, by iteratively
+    adjusting atom coordinates.
+    The system is minimized by evolving the equations of motion with large
+    damping, which saps energy from it. The maximum distance an atom
+    can move in an iteration step is determined by maxdist. The minimisation
+    is terminated when one of the following criteria is met:
+
+    1. energy difference between steps less than etol.
+    2. total force is less than ftol
+    3. the number of iterations exceeds maxiter
+    4. the number of force evaluations exceeds maxeval
+
+    See Also: http://lammps.sandia.gov/doc/minimize.html
+
+    :param etol: energy difference tolerance
+    :param ftol: force tolerance
+    :param maxiter: maximum number of iterations
+    :param maxeval: maximum number of force evaluations
+    :param maxdist: maximum distance atoms can move
+    """
 
     lines = ['\n# minimize',
              'min_style quickmin',
@@ -89,6 +148,14 @@ def minimise(etol, ftol, maxiter, maxeval, maxdist):
 
 @lammps.fix
 def ionneutralheating(uid, ions, rate):
+    """Average heating effect due to collision of ions with
+    background gas. Applies a small velocity kick to atoms each timestep
+    using a normal veolcity distribution.
+
+    :param ions: species to apply the kicks to
+    :param rate: heating rate
+    """
+
     rate = abs(rate)  # this is heating after all
     au = 1.66e-27
     iid = ions['uid']
@@ -106,6 +173,19 @@ def ionneutralheating(uid, ions, rate):
 
 @lammps.fix
 def langevinbath(uid, temperature, dampingtime):
+    """Creates a langevin bath of a given temperature.
+    The langevin bath applies a damping force to each atom proportional to
+    its velocity plus a stochastic, white noise force of a magnitude such
+    that after a time significantly longer than the 'dampingtime' the system
+    will thermalise to the specified temperature. The damping time is the
+    time taken for velocity to relax to 1/e of its initial value in a zero
+    temperature bath.
+
+    See Also: lasercool, http://lammps.sandia.gov/doc/fix_langevin.html
+
+    :param temperature: temperature
+    :param dampingtime: effectively defines coupling strength to the bath
+    """
 
     lines = ['\n# Adding a langevin bath...',
              f'fix {uid} all langevin {temperature:e} {temperature:e} {dampingtime:e} 1337\n']
@@ -115,6 +195,16 @@ def langevinbath(uid, temperature, dampingtime):
 
 @lammps.fix
 def lasercool(uid, ions, k):
+    """Simulates laser cooling of a particular ion species by damping the
+    velocity of the ions. kx, ky, kz define the strength of the damping force,
+    which is of the form :math:`f_i = - k_i * v_i`.
+
+    See Also: langevinbath
+
+    :param ions: select species of ions
+    :param k: (kx, ky, kz) laser wavevector
+    """
+
     kx, ky, kz = k
     iid = ions['uid']
 
@@ -222,6 +312,40 @@ def _pseudotrap(uid, k, group='all'):
 
 @lammps.fix
 def linearpaultrap(uid, trap, ions=None, all=True):
+    """Applies an oscillating electric field to atoms. The
+    characterisation of the trap follows Berkeland et al. (1998).
+    'trap' shoud be a dictionary with the following items:
+
+    - 'radius', of the trap in meters
+    - 'length', of the trap in meters
+    - 'kappa', is a geometric factor defined in Berkeland et al.
+    - 'frequency', should be in Hz, not radians per second.
+    - 'voltage', is the voltage of the rf electrodes
+    - 'endcapvoltage', the voltage of the endcaps
+
+    The are also three optional parameters:
+    - 'anisotropy', is used to imbalance fields in x and y directions,
+    such that V_y = anisotropy * V_x. Defaults to 1.
+    - 'offset', moves the center of the trap away from the rf-null axis.
+    Defaults to (0, 0).
+    - 'pseudo', boolean to choose between the full rf trap or the corresponding
+    pseudopoential. Defaults to False.
+
+    'frequency' and 'voltage' can be specified as vectors, in which case a
+    multi-frequency Paul trap is created.
+
+    As the pseudopotential is dependent on the charge:mass ratio of the ion,
+    this fix requires that an 'ions' dict be supplied unless the 'all'
+    parameter is True.
+
+    See Also: http://tf.nist.gov/general/pdf/1226.pdf
+
+    :param trap: dictionary containing trap parameters
+    :param ions: species to be used for pseudopotential
+    :param all: boolean that chooses beteween the pseudopotential applied to
+      all the ions in the simulation or just a single species
+    """
+
     if trap.get('pseudo'):
         charge = ions['charge'] * 1.6e-19
         mass = ions['mass'] * 1.66e-27
@@ -264,6 +388,12 @@ def linearpaultrap(uid, trap, ions=None, all=True):
 
 @lammps.variable('fix')
 def timeaverage(uid, steps, variables):
+    """A variable in LAMMPS representing a time averaged quantity over a
+    number of steps.
+
+    :param stes: number of steps to average over
+    :param variables: list of variables to be averaged
+    """
 
     variables = ' '.join(variables)
 
@@ -274,6 +404,11 @@ def timeaverage(uid, steps, variables):
 
 @lammps.variable('var')
 def squaresum(uid, variables):
+    """Creates a lammps variable that calculates the square sum of the
+    input variables.
+
+    :param variables: list of variables
+    """
 
     vsq = [f'{v}^2' for v in variables]
     sqs = '+'.join(vsq)
@@ -285,6 +420,13 @@ def squaresum(uid, variables):
 
 @lammps.fix
 def dump(uid, filename, variables, steps=10):
+    """Dumps variables from lammps into files for analysis.
+
+    :param filename: name of output file
+    :param variables: list of variables to be written
+    :param steps: variables are written every steps
+    """
+
     lines = []
 
     try:
@@ -299,6 +441,10 @@ def dump(uid, filename, variables, steps=10):
 
 
 def trapaqtovoltage(ions, trap, a, q):
+    """Calculates trap voltages for given a, q parameters.
+
+    :return: tuple of (voltage, endcapvoltage)
+    """
 
     mass = ions['mass'] * 1.66e-27
     charge = ions['charge'] * 1.6e-19
@@ -314,6 +460,14 @@ def trapaqtovoltage(ions, trap, a, q):
 
 
 def readdump(filename):
+    """Reads data from the given dump file. The dump should be a file
+    with atom quantities in the order `id vargout`, e.g. `id vx vy vz`.
+
+    :param filename: name of input file
+    :return: a tuple of (steps, data).
+      The shape of data is (steps, ions, (x, y, z)).
+    """
+
     steps = []
     data = []
     import time

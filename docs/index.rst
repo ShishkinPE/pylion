@@ -15,11 +15,11 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   install
-   usage
+   gettingstarted
+   simulation
    examples
-   implementation
-   apireference
+   functions
+   extending
    faq
 
 
@@ -30,4 +30,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
