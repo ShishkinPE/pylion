@@ -6,7 +6,6 @@ import matplotlib.animation as animation
 
 # use filename for simulation name
 name = Path(__file__).stem
-name = 'new'
 
 s = pl.Simulation(name)
 
@@ -33,4 +32,7 @@ data *= 1e6
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2])
+ax.set_xlabel('x (um)')
+ax.set_ylabel('y (um)')
+ax.set_zlabel('z (um)')
 plt.show()

@@ -80,7 +80,6 @@ class Variable(CfgObject):
         prefix = {'fix': 'f_', 'var': 'v_'}
         vtype = self.odict['vtype']
         name = self.odict['uid']
-        print(prefix, vtype, name)
         output = ' '.join([f'{prefix[vtype]}{name}[{i+1}]'
                            for i in range(len(vs))])
         self.odict.update({'output': output})

@@ -42,9 +42,9 @@ p2 = ax.scatter(data[0, -3:, 0], data[0, -3:, 1], data[0, -3:, 2],
 ax.set_xlim([-60, 60])
 ax.set_ylim([-60, 60])
 ax.set_zlim([-60, 60])
-ax.set_xlabel('x $(\mu m)$')
-ax.set_ylabel('y $(\mu m)$')
-ax.set_zlabel('z $(\mu m)$')
+ax.set_xlabel('x (um)')
+ax.set_ylabel('y (um)')
+ax.set_zlabel('z (um)')
 
 
 # 3D animation

@@ -22,14 +22,13 @@ class TestPylion(unittest.TestCase):
                          variables=['x', 'y', 'z']))
 
         s.append(pl.evolve(10000))
-        s._writeinputfile()
-        # s.execute()
+        s.execute()
 
     def tearDown(self):
         # delete the generated files
         for filename in ['log.lammps', 'micromotion.h5',
                          'micromotion.lammps', 'micro_positions.txt']:
-            # os.remove(filename)
+            os.remove(filename)
             pass
 
     def test_micromotion(self):
@@ -43,6 +42,5 @@ class TestPylion(unittest.TestCase):
         # plt.plot(np.sort(amplitude)[::-1])
         # plt.show()
 
-        # todo change the assertion to something meaningful
         for amp in amplitude:
             self.assertLess(amp, 12)

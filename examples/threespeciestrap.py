@@ -5,7 +5,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
-name = 'new'
 
 s = pl.Simulation(name)
 
@@ -19,7 +18,9 @@ alexafluora = {'mass': 60, 'charge': 1}
 s.append(pl.createioncloud(alexafluora, 1e-4, 20))
 
 
-trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244, 'frequency': 3.85e6, 'voltage': 180,'endcapvoltage': 4, 'pseudo': True}
+trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244,
+        'frequency': 3.85e6, 'voltage': 180, 'endcapvoltage': 4,
+        'pseudo': True}
 
 pseudotrap = pl.linearpaultrap(trap, calciumions)
 s.append(pseudotrap)
@@ -44,6 +45,10 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 idx = 0
 for colour in ['b', 'r', 'y']:
-    ax.scatter(data[-1, idx:idx+20, 0], data[-1, idx:idx+20, 1], data[-1, idx:idx+20, 2], s=40, c=colour)
+    ax.scatter(data[-1, idx:idx+20, 0], data[-1, idx:idx+20, 1],
+               data[-1, idx:idx+20, 2], s=40, c=colour)
     idx += 20
+ax.set_xlabel('x (um)')
+ax.set_ylabel('y (um)')
+ax.set_zlabel('z (um)')
 plt.show()

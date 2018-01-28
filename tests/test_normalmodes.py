@@ -56,13 +56,13 @@ class TestPylion(unittest.TestCase):
 
         self.timestep = s.attrs['timestep']
 
-        # s.execute()
+        s.execute()
 
     def tearDown(self):
         # delete the generated files
         for filename in ['log.lammps', 'normalmodes.h5',
                          'normalmodes.lammps', 'nm_positions.txt']:
-            # os.remove(filename)
+            os.remove(filename)
             pass
 
     def test_normalmodes(self):
@@ -90,6 +90,8 @@ class TestPylion(unittest.TestCase):
 
         xf_max = 2*np.sqrt(nms[-1]) * zfreq
         lowpass = (xf < xf_max)  # lowpass filter
+
+        # TODO test something without scipy
 
         # peakind = find_peaks_cwt(fabs[lowpass], np.arange(10, 20))
         # todo just get the highest peak with max and see where it lands
