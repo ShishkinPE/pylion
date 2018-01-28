@@ -5,7 +5,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
-name = 'new'
 
 s = pl.Simulation(name)
 
@@ -37,14 +36,16 @@ s.remove(bath)
 s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
 
 s.append(pl.evolve(1e4))
-# s._writeinputfile()
 s.execute()
 
-# _, data = pl.readdump('positions.txt')
-# data *= 1e6
+_, data = pl.readdump('positions.txt')
+data *= 1e6
 
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(data[-1, :-2, 0], data[-1, :-2, 1], data[-1, :-2, 2])
-# ax.scatter(data[-1, -1, 0], data[-1, -1, 1], data[-1, -1, 2], s=100, c='r')
-# plt.show()
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(data[-1, :-2, 0], data[-1, :-2, 1], data[-1, :-2, 2])
+ax.scatter(data[-1, -1, 0], data[-1, -1, 1], data[-1, -1, 2], s=100, c='r')
+ax.set_xlabel('x (um)')
+ax.set_ylabel('y (um)')
+ax.set_zlabel('z (um)')
+plt.show()

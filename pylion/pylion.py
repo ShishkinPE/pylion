@@ -8,7 +8,7 @@ from datetime import datetime
 import sys
 import time
 
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 
 class SimulationError(Exception):
@@ -49,26 +49,42 @@ class Simulation(list):
         self.attrs['neighbour'] = {'skin': 1, 'list': 'nsq'}
         self.attrs['coulombcutoff'] = 10
         self.attrs['template'] = 'simulation.j2'
+        self.attrs['version'] = __version__
+        self.attrs['rigid'] = {'exists': False}
 
         # initalise the h5 file
         with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
             pass
 
     def __contains__(self, this):
+        """Check if an item exists in the simulation using its ``uid``.
+        """
+
         try:
             return this['uid'] in self._uids
         except KeyError:
             print("Item does not have a 'uid' key.")
 
     def append(self, this):
+        """Appends the items and checks their attributes.
+        Their ``uid`` is logged if they have one.
+        """
+
         # only allow for dicts in the list
-        assert isinstance(this, dict)
+        if not isinstance(this, dict):
+            raise SimulationError("Only 'dicts' are allowed in Simulation().")
+
         try:
             self._uids.append(this['uid'])
+
             # ions will always be included first so to sort you have
             # to give 1-count 'priority' keys to the rest
             if this.get('type') == 'ions':
                 this['priority'] = 0
+                if this.get('rigid'):
+                    self.attrs['rigid']['exists'] = True
+                    self.attrs['rigid'].setdefault('groups',
+                                                   []).append(this['uid'])
         except KeyError:
             # append None to make sure len(self._uids) == len(self.data)
             self._uids.append(None)
@@ -81,20 +97,32 @@ class Simulation(list):
         super().append(this)
 
     def extend(self, iterable):
+        """Calls ``append`` on an iterable.
+        """
+
         for item in iterable:
             self.append(item)
 
     def index(self, this):
+        """Returns the index of an item using its ``uid``.
+        """
+
         return self._uids.index(this['uid'])
 
     def remove(self, this):
-        # use del if you really want to delete something or better yet don't
-        # add it to the simulation in the first place
+        """Will not remove anything from the simulation but rather from lammps.
+        It adds an ``unfix`` command when it's called.
+        Use del if you really want to delete something or better yet don't
+        add it to the simulation in the first place.
+        """
+
         code = ['\n# Deleting a fix', f"unfix {this['uid']}\n"]
         self.append({'code': code, 'type': 'command'})
 
     def sort(self):
-        # sort with 'priority' keys if found otherwise do nothing
+        """Sort with 'priority' keys if found otherwise do nothing.
+        """
+
         try:
             super().sort(key=lambda item: item['priority'])
         except KeyError:
@@ -102,18 +130,14 @@ class Simulation(list):
             # Not all elements have 'priority' keys. Cannot sort list
 
     def _writeinputfile(self):
-        self.attrs['version'] = __version__
-        self.attrs.setdefault('rigid', {'exists': False})
 
         self.sort()  # if 'priority' keys exist
 
         odict = {key: [] for key in ['species', 'simulation']}
-        for idx, item in enumerate(self):
+        # deal the items in odict
+        for item in self:
             if item.get('type') == 'ions':
                 odict['species'].append(item)
-                if item.get('rigid'):
-                    self.attrs['rigid'] = {'exists': True}
-                    self.attrs['rigid'].setdefault('groups', []).append(idx+1)
             else:
                 odict['simulation'].append(item)
 
@@ -130,8 +154,8 @@ class Simulation(list):
         if maxuid > len(odict['species']):
             raise SimulationError(
                 "Max 'uid' of species is larger than the number of species. "
-                "Calling '@lammps.ions' decorated functions "
-                "always increments the 'uid' count.")
+                "Calling '@lammps.ions' decorated functions increments the "
+                "'uid' count unless it is for the same ion group.")
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
@@ -158,9 +182,11 @@ class Simulation(list):
         self._savescriptsource(self.attrs['name'] + '.lammps')
 
         # give it some time to write everything to the h5 file
-        time.sleep(1)
+        time.sleep(0.5)
 
     def execute(self):
+        """Write lammps input file and run the simulation.
+        """
 
         if getattr(self, '_hasexecuted', False):
             print('Simulation has executed already. Do not run it again.')

@@ -5,13 +5,11 @@ with open('readme.md') as readme_file:
 
 
 requirements = [
-    'sphinx_rtd_theme>=0.2.4',
     'h5py>=2.7.0',
     'pexpect>=4.2.1',
     'termcolor>=1.1.0',
     'numpy>=1.13.1',
     'jinja2>=2.9.6',
-    'matplotlib>=2.0.2'
     # TODO: put package requirements here
 ]
 
@@ -25,7 +23,7 @@ test_requirements = [
 
 setup(
     name='pylion',
-    version='0.3.3',
+    version='0.3.4',
     description="A LAMMPS wrapper for molecular dynamics simulations of trapped ions.",
     long_description=readme,
     author="Dimitris Trypogeorgos",

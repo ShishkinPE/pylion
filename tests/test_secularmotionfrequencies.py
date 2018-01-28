@@ -5,7 +5,8 @@ import os
 import matplotlib.pyplot as plt
 from numpy.fft import fft
 
-# todo some tests fails especially in the rf
+
+# TODO some tests fail here
 class TestPylion(unittest.TestCase):
 
     def setUp(self):

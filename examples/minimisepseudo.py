@@ -5,7 +5,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # use filename for simulation name
 name = Path(__file__).stem
-name = 'new'
 
 s = pl.Simulation(name)
 
@@ -13,7 +12,8 @@ ions = {'mass': 30, 'charge': -1}
 s.append(pl.createioncloud(ions, 1e-3, 10))
 
 trap = {'radius': 7e-3, 'length': 5.5e-3, 'kappa': 0.244,
-        'frequency': 3.85e6, 'voltage': 300, 'endcapvoltage': -0.01, 'pseudo': True}
+        'frequency': 3.85e6, 'voltage': 300,
+        'endcapvoltage': -0.01, 'pseudo': True}
 pseudotrap = pl.linearpaultrap(trap, ions)
 s.append(pseudotrap)
 
@@ -37,12 +37,12 @@ data *= 1e6
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(data[::10, :, 0], data[::10, :, 1], data[::10, :, 2])
-ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2], c='r', s=50)
-plt.show()
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(data[0, :, 0], data[0, :, 1], data[0, :, 2])
-ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2], c='r', s=50)
+ax.scatter(data[10:-10:10, :, 0], data[10:-10:10, :, 1], data[10:-10:10, :, 2])
+ax.scatter(data[-1, :, 0], data[-1, :, 1], data[-1, :, 2],
+           c='red', s=50, alpha=1)
+ax.scatter(data[0, :, 0], data[0, :, 1], data[0, :, 2],
+           c='blue', s=50, alpha=1)
+ax.set_xlabel('x (um)')
+ax.set_ylabel('y (um)')
+ax.set_zlabel('z (um)')
 plt.show()
