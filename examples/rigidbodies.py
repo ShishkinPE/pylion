@@ -5,8 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 # use filename for simulation name
-# name = Path(__file__).stem
-name = 'new'
+name = Path(__file__).stem
 
 s = pl.Simulation(name)
 
@@ -30,7 +29,6 @@ vavg = pl.timeaverage(20, variables=['vx', 'vy', 'vz'])
 s.append(pl.dump('secv.txt', vavg, steps=20))
 
 s.append(pl.evolve(1000))
-s._writeinputfile()
 s.execute()
 
 _, data = pl.readdump('positions.txt')
@@ -47,7 +45,6 @@ ax.set_zlim([-60, 60])
 ax.set_xlabel('x $(\mu m)$')
 ax.set_ylabel('y $(\mu m)$')
 ax.set_zlabel('z $(\mu m)$')
-# plt.show()
 
 
 # 3D animation

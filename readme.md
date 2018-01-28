@@ -30,13 +30,38 @@ python3 setup.py
 We suggest using the Anaconda python distribution that comes batteries included.
 To make the documentation use `make html` in the documentation folder.
 
-Free software: MIT license
+## Getting started
+
+Once you're done with the installation you can start simulating clouds of ions within a few lines of code.
+The following simulates the trajectories of 100 ions, trapped in a linear Paul trap.
+
+~~~
+import pylion as pl
+
+s = pl.Simulation('simple')
+
+ions = {'mass': 40, 'charge': -1}
+s.append(pl.createioncloud(ions, 1e-3, 100))
+
+trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244,
+        'frequency': 3.85e6, 'voltage': 500, 'endcapvoltage': 15}
+s.append(pl.linearpaultrap(trap))
+
+s.append(pl.langevinbath(0, 1e-5))
+
+s.append(pl.dump('positions.txt', variables=['x', 'y', 'z'], steps=10))
+
+s.append(pl.evolve(1e4))
+s.execute()
+~~~
+
+Look into the `examples` and `tests` folders for more ideas.
 
 ## Tests
 
 Run all autodiscovered tests with `python -m unittest` will take a few minutes.
 The `tests/test_pylion.py` is for implementation details. You can run this only while developing which will be much faster.
-The other tests are slower because they test for correct phyisics and have to run a bunch of simulations.
+The other tests are slower because they test for correct physics and have to run a bunch of simulations.
 
 ## Documentation
 
@@ -53,12 +78,14 @@ Go to the docs folder folder and run `make html` or whatever format you prefer.
 
 ## Features
 
-* Simulate multiple ion species in the same trap.
+*   Simulate multiple ion species in the same trap.
 
-* Use multiple trap driving frequencies. See [Phys. Rev. A 94, 02360](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
+*   Use multiple trap driving frequencies. See [Phys. Rev. A 94, 02360](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
 
-* Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
+*   Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
 If you find this software useful in your research please cite:
 [D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
 [C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)
+
+Free software: MIT license
