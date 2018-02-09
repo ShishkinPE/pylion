@@ -5,6 +5,7 @@ import jinja2 as j2
 import json
 import inspect
 from datetime import datetime
+from collections import defaultdict
 import sys
 import time
 
@@ -129,7 +130,7 @@ class Simulation(list):
 
         self.sort()  # if 'priority' keys exist
 
-        odict = {key: [] for key in ['species', 'simulation']}
+        odict = defaultdict(list)
         # deal the items in odict
         for item in self:
             if item.get('type') == 'ions':
