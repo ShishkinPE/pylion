@@ -5,10 +5,11 @@ import jinja2 as j2
 import json
 import inspect
 from datetime import datetime
+from collections import defaultdict
 import sys
 import time
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 
 
 class SimulationError(Exception):
@@ -42,7 +43,7 @@ class Simulation(list):
         name = name.replace(' ', '_').lower()
 
         self.attrs = Attributes()
-        self.attrs['executable'] = '/Applications/lammps-31Mar17/src/lmp_serial'
+        self.attrs['executable'] = 'lmp_serial'
         self.attrs['timestep'] = 1e-6
         self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
         self.attrs['name'] = name
@@ -74,20 +75,16 @@ class Simulation(list):
         if not isinstance(this, dict):
             raise SimulationError("Only 'dicts' are allowed in Simulation().")
 
-        try:
-            self._uids.append(this['uid'])
+        self._uids.append(this.get('uid'))
 
-            # ions will always be included first so to sort you have
-            # to give 1-count 'priority' keys to the rest
-            if this.get('type') == 'ions':
-                this['priority'] = 0
-                if this.get('rigid'):
-                    self.attrs['rigid']['exists'] = True
-                    self.attrs['rigid'].setdefault('groups',
-                                                   []).append(this['uid'])
-        except KeyError:
-            # append None to make sure len(self._uids) == len(self.data)
-            self._uids.append(None)
+        # ions will always be included first so to sort you have
+        # to give 1-count 'priority' keys to the rest
+        if this.get('type') == 'ions':
+            this['priority'] = 0
+            if this.get('rigid'):
+                self.attrs['rigid']['exists'] = True
+                self.attrs['rigid'].setdefault('groups',
+                                               []).append(this['uid'])
 
         timestep = this.get('timestep', 1e12)
         if timestep < self.attrs['timestep']:
@@ -133,7 +130,7 @@ class Simulation(list):
 
         self.sort()  # if 'priority' keys exist
 
-        odict = {key: [] for key in ['species', 'simulation']}
+        odict = defaultdict(list)
         # deal the items in odict
         for item in self:
             if item.get('type') == 'ions':

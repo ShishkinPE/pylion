@@ -5,6 +5,7 @@ __pycache__
 *.egg
 *.pyc
 .vscode
+.DS_Store
 *.lammps
 *.old
 notes.md

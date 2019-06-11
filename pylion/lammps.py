@@ -5,18 +5,18 @@ import functools
 @pretty_repr
 class CfgObject:
     def __init__(self, func, lmp_type, required=None):
+        if not required:
+            required = []
 
         self.func = func
 
-        # use default keys and update if there is anything else
+        # use default keys 'code', 'type' and update if there is anything else
         # __call__ will overwrite code except for ions
-        self.odict = dict.fromkeys(('code', 'type'), [])
+        required = [x if isinstance(x, tuple) else (x, None)
+                    for x in required + [('code', []), 'type']]
+
+        self.odict = dict(required)
         self.odict['type'] = lmp_type
-        if required:
-            # add default None keys if not provided
-            required = [x if isinstance(x, tuple) else (x, None)
-                        for x in required]
-            self.odict.update(dict(required))
 
         # add dunder attrs from func
         functools.update_wrapper(self, func)
