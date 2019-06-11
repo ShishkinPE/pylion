@@ -43,7 +43,7 @@ class Simulation(list):
         name = name.replace(' ', '_').lower()
 
         self.attrs = Attributes()
-        self.attrs['executable'] = '/Applications/lammps-31Mar17/src/lmp_serial'
+        self.attrs['executable'] = 'lmp_serial'
         self.attrs['timestep'] = 1e-6
         self.attrs['domain'] = [1e-3, 1e-3, 1e-3]  # length, width, height
         self.attrs['name'] = name
