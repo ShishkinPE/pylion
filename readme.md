@@ -85,7 +85,20 @@ Go to the docs folder folder and run `make html` or whatever format you prefer.
 *   Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
 If you find this software useful in your research please cite:
-[D. Trypogeorgos et al., Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
-[C. Foot et al., arxiv:1801.00424](http://arxiv.org/abs/1801.00424)
+
+D. Trypogeorgos et al., [Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
+
+C. Foot et al., [IJMS Volume 430, July 2018, Pages 117-125](https://www.sciencedirect.com/science/article/pii/S1387380618300010)
+
+
+## File structure
+
+*  `pylion`: contains all the main classes for managing the simulation.
+
+*  `examples`: example simulations showing different features of `(py)lion`.
+
+*  `tests`: a collection of scripts used to test the correct implementation of `(py)lion`.
+
+*  `docs`: documentation folder including user and developer manuals.
 
 Free software: MIT license
