@@ -22,7 +22,7 @@ class TestPylion(unittest.TestCase):
 
         s = pl.Simulation('test')
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
+        ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
         # make sure other ions in test don't conflict with this
         ions['uid'] = 1
         s.append(ions)
@@ -48,7 +48,7 @@ class TestPylion(unittest.TestCase):
     def test_moreatoms(self):
         s = pl.Simulation('test')
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
+        ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
         ions['uid'] = 2
         s.append(ions)
 
@@ -59,7 +59,7 @@ class TestPylion(unittest.TestCase):
     def test_sameuids(self):
         s = pl.Simulation('test')
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
+        ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
         s.append(ions)
         s.append(ions)
 
@@ -139,11 +139,11 @@ class TestPylion(unittest.TestCase):
 
     def test_rigid(self):
         s = pl.Simulation('test')
-        ions = pl.createioncloud({'charge': 3, 'mass':  10}, 1e-3, 10)
+        ions = pl.createioncloud({'charge': 3, 'mass': 10}, 1e-3, 10)
         ions['rigid'] = True
         s.append(ions)
 
-        ions = pl.createioncloud({'charge': 2, 'mass':  20}, 1e-3, 10)
+        ions = pl.createioncloud({'charge': 2, 'mass': 20}, 1e-3, 10)
         ions['rigid'] = True
         s.append(ions)
 

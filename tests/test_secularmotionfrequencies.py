@@ -44,10 +44,10 @@ class TestPylion(unittest.TestCase):
 
                 _, data = pl.readdump('secular_positions.txt')
 
-                rfreq = (self.trap['frequency']/2 *
-                         np.sqrt(q ** 2 / 2 + self.trap['a']))
-                zfreq = (self.trap['frequency']/2 *
-                         np.sqrt(- 2 * self.trap['a']))
+                rfreq = (self.trap['frequency'] / 2
+                         * np.sqrt(q ** 2 / 2 + self.trap['a']))
+                zfreq = (self.trap['frequency'] / 2
+                         * np.sqrt(- 2 * self.trap['a']))
 
                 xf = np.linspace(0.0, 1 / (2 * s.attrs['timestep']),
                                  len(data) // 2)
@@ -57,8 +57,8 @@ class TestPylion(unittest.TestCase):
                 indr = np.argmax(fr)
                 indz = np.argmax(fz)
 
-                self.assertAlmostEqual(xf[indr]*1e-6, rfreq*1e-6, 2)
-                self.assertAlmostEqual(xf[indz]*1e-6, zfreq*1e-6, 2)
+                self.assertAlmostEqual(xf[indr] * 1e-6, rfreq * 1e-6, 2)
+                self.assertAlmostEqual(xf[indz] * 1e-6, zfreq * 1e-6, 2)
 
     def test_secularrf(self):
 
@@ -84,10 +84,10 @@ class TestPylion(unittest.TestCase):
 
                 _, data = pl.readdump('secular_positions.txt')
 
-                rfreq = (self.trap['frequency']/2 *
-                         np.sqrt(q ** 2 / 2 + self.trap['a']))
-                zfreq = (self.trap['frequency']/2 *
-                         np.sqrt(- 2 * self.trap['a']))
+                rfreq = (self.trap['frequency'] / 2
+                         * np.sqrt(q ** 2 / 2 + self.trap['a']))
+                zfreq = (self.trap['frequency'] / 2
+                         * np.sqrt(- 2 * self.trap['a']))
 
                 xf = np.linspace(0.0, 1 / (2 * s.attrs['timestep']),
                                  len(data) // 2)
@@ -97,5 +97,5 @@ class TestPylion(unittest.TestCase):
                 indr = np.argmax(fr)
                 indz = np.argmax(fz)
 
-                self.assertAlmostEqual(xf[indr]*1e-6, rfreq*1e-6, 2)
-                self.assertAlmostEqual(xf[indz]*1e-6, zfreq*1e-6, 2)
+                self.assertAlmostEqual(xf[indr] * 1e-6, rfreq * 1e-6, 2)
+                self.assertAlmostEqual(xf[indz] * 1e-6, zfreq * 1e-6, 2)

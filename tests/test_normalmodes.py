@@ -83,11 +83,11 @@ class TestPylion(unittest.TestCase):
         fz = fft(pos, axis=0)
 
         # # just sum everything together to find peaks
-        fabs = np.sum(fz*np.conj(fz), axis=1)[:n // 2].real
+        fabs = np.sum(fz * np.conj(fz), axis=1)[:n // 2].real
         fabs /= np.max(fabs)  # normalise
         fabs[fabs < 0.01] = 0  # threshold
 
-        xf_max = 2*np.sqrt(nms[-1]) * zfreq
+        xf_max = 2 * np.sqrt(nms[-1]) * zfreq
         lowpass = (xf < xf_max)  # lowpass filter
 
         # TODO test something without scipy

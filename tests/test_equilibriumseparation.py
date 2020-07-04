@@ -57,10 +57,10 @@ def lengthscale(trap, ions):
 
     qz = 0
     az = -2 * a
-    omega_z = 2*np.pi * rf/2 * np.sqrt(qz**2 / 2 + az)
+    omega_z = 2 * np.pi * rf / 2 * np.sqrt(qz**2 / 2 + az)
 
-    return ((charge * 1.6e-19)**2 / (4*np.pi * 8.85e-12) /
-            (mass * 1.66e-27 * omega_z**2))**(1/3)
+    return ((charge * 1.6e-19)**2 / (4 * np.pi * 8.85e-12)
+            / (mass * 1.66e-27 * omega_z**2))**(1 / 3)
 
 
 class TestPylion(unittest.TestCase):
@@ -108,4 +108,4 @@ class TestPylion(unittest.TestCase):
 
                 # test that the final position is close to the theoretical
                 for d, p in zip(data[-1, :, 2], pos[number]):
-                    self.assertAlmostEqual(d, lscale*p, 2)
+                    self.assertAlmostEqual(d, lscale * p, 2)
