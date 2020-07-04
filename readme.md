@@ -40,7 +40,7 @@ import pylion as pl
 
 s = pl.Simulation('simple')
 
-ions = {'mass': 40, 'charge': -1}
+ions = {'mass': 40, 'charge': 1}
 s.append(pl.createioncloud(ions, 1e-3, 100))
 
 trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244,
