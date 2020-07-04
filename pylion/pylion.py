@@ -1,6 +1,5 @@
 import h5py
 import signal
-import pexpect
 import jinja2 as j2
 import json
 import inspect
@@ -8,6 +7,11 @@ from datetime import datetime
 from collections import defaultdict
 import sys
 import time
+
+if 'win32' in sys.platform:
+    import wexpect as pexpect
+else:
+    import pexpect
 
 __version__ = '0.3.6'
 
