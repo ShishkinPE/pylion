@@ -1,6 +1,5 @@
 import h5py
 import signal
-import pexpect
 import jinja2 as j2
 import json
 import inspect
@@ -9,7 +8,12 @@ from collections import defaultdict
 import sys
 import time
 
-__version__ = '0.3.6'
+if 'win32' in sys.platform:
+    import wexpect as pexpect
+else:
+    import pexpect
+
+__version__ = '0.3.7'
 
 
 class SimulationError(Exception):
@@ -21,7 +25,7 @@ class Attributes(dict):
     """Light dict wrapper to serve as a container of attributes."""
 
     def save(self, filename):
-        with h5py.File(filename) as f:
+        with h5py.File(filename, 'a') as f:
             print(f'Saving attributes to {filename}')
             f.attrs.update({k: json.dumps(v)
                             for k, v in self.items()})
@@ -230,7 +234,7 @@ class Simulation(list):
             print(line)
 
     def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5') as f:
+        with h5py.File(self.attrs['name'] + '.h5', 'a') as f:
             with open(script, 'rb') as pf:
                 lines = pf.readlines()
                 f.create_dataset(script, data=lines)
