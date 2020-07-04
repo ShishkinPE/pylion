@@ -6,7 +6,7 @@ from numpy.fft import fft
 # from scipy.signal import find_peaks_cwt
 
 
-def nmintheory():
+def nmintheory(number):
     """"Theoretical normal modes of ions in a linear
     paul trap when a chain configuration is formed. Adapted from 'Quantum
     dynamics of cold trapped ions with application to quantum computation'
@@ -23,7 +23,7 @@ def nmintheory():
               [1, 3, 5.838, 9.396, 13.6, 18.41, 23.79, 29.71, 36.16],
               [1, 3, 5.841, 9.408, 13.63, 18.45, 23.85, 29.79, 36.26, 43.24]]
 
-    return values
+    return np.array(values[number - 1])
 
 
 class TestPylion(unittest.TestCase):
