@@ -2,7 +2,6 @@ import unittest
 import pylion as pl
 import numpy as np
 import os
-import matplotlib.pyplot as plt
 from numpy.fft import fft
 
 

@@ -3,7 +3,6 @@ import pylion as pl
 import numpy as np
 import os
 from numpy.fft import fft
-import matplotlib.pyplot as plt
 # from scipy.signal import find_peaks_cwt
 
 
