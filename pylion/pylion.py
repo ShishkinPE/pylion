@@ -21,7 +21,7 @@ class Attributes(dict):
     """Light dict wrapper to serve as a container of attributes."""
 
     def save(self, filename):
-        with h5py.File(filename) as f:
+        with h5py.File(filename, 'a') as f:
             print(f'Saving attributes to {filename}')
             f.attrs.update({k: json.dumps(v)
                             for k, v in self.items()})
@@ -230,7 +230,7 @@ class Simulation(list):
             print(line)
 
     def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5') as f:
+        with h5py.File(self.attrs['name'] + '.h5', 'a') as f:
             with open(script, 'rb') as pf:
                 lines = pf.readlines()
                 f.create_dataset(script, data=lines)
