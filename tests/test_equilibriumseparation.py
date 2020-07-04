@@ -56,7 +56,6 @@ def lengthscale(simulation_data):
 
 
 @pytest.fixture(params=[2, 3, 5, 7, 8])
-# @pytest.fixture(params=[2, 3])
 def simulation(simulation_data, request):
     trap, ions = simulation_data
 

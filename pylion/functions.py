@@ -57,7 +57,7 @@ def createioncloud(ions, radius, number):
     for ind in range(number):
         d = np.random.random() * radius
         a = np.pi * np.random.random()
-        b = 2*np.pi * np.random.random()
+        b = 2 * np.pi * np.random.random()
 
         positions.append([d * np.sin(a) * np.cos(b),
                           d * np.sin(a) * np.sin(b),
