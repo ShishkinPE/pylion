@@ -13,7 +13,7 @@ if 'win32' in sys.platform:
 else:
     import pexpect
 
-__version__ = '0.3.7'
+__version__ = '0.4.0'
 
 
 class SimulationError(Exception):
@@ -154,7 +154,8 @@ class Simulation(list):
         maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
         if maxuid > len(odict['species']):
             raise SimulationError(
-                "Max 'uid' of species is larger than the number of species. "
+                f"Max 'uid' of species={maxuid} is larger than the number "
+                f"of species={len(odict['species'])}. "
                 "Calling '@lammps.ions' decorated functions increments the "
                 "'uid' count unless it is for the same ion group.")
 

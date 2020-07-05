@@ -40,7 +40,7 @@ def _unique_id(*args):
     # extract 2 least significant bytes. that should be enough to make sure ids
     # are unique and it's sensitive to small changes in the input arguments
     uid = sum([id(arg) for arg in args])
-    uid &= 0xFFF
+    # uid &= 0xFFF
     return uid
 
 
@@ -66,7 +66,6 @@ def _unique_id(*args):
 #             return odict
 #         return wrapper
 #     return decorator
-
 
 
 # def _unique_id(*args):

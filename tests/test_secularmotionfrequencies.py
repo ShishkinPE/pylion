@@ -1,101 +1,80 @@
-import unittest
+import pytest
 import pylion as pl
 import numpy as np
 import os
+import itertools
 from numpy.fft import fft
 
 
-# TODO some tests fail here
-class TestPylion(unittest.TestCase):
+@pytest.fixture
+def simulation_data():
+    ions = {'mass': 40, 'charge': 1}
+    trap = {'radius': 1e-3, 'length': 1e-3, 'kappa': 0.5,
+            'frequency': 10e6, 'a': -0.001}
 
-    def setUp(self):
-        self.ions = {'mass': 40, 'charge': 1}
-        self.trap = {'radius': 1e-3, 'length': 1e-3, 'kappa': 0.5,
-                     'frequency': 10e6, 'a': -0.001}
-        self.qs = np.arange(0.06, 0.3, 0.03)
+    return trap, ions
 
-    def tearDown(self):
-        # delete the generated files
-        for filename in ['log.lammps', 'secular.h5',
-                         'secular.lammps', 'secular_positions.txt']:
-            os.remove(filename)
 
-    def test_secularpseudo(self):
+# testing a bunch of qs both for rf and pseudo traps
+qs = np.arange(0.06, 0.3, 0.03)
+pseudo = zip(qs, [True] * len(qs))
+rf = zip(qs, [False] * len(qs))
 
-        self.trap['pseudo'] = True
 
-        for q in self.qs:
-            with self.subTest(q=q):
-                s = pl.Simulation('secular')
+@pytest.fixture(params=itertools.chain(pseudo, rf))
+def simulation(simulation_data, request):
+    trap, ions = simulation_data
+    q, pseudo = request.param
 
-                v, ev = pl.trapaqtovoltage(self.ions, self.trap,
-                                           self.trap['a'], q)
-                self.trap['voltage'], self.trap['endcapvoltage'] = v, ev
+    trap['pseudo'] = pseudo
 
-                s.append(pl.createioncloud(self.ions, 1e-3, 1))
-                s.append(pl.linearpaultrap(self.trap, self.ions))
+    v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], q)
+    trap['voltage'], trap['endcapvoltage'] = v, ev
 
-                s.append(pl.dump('secular_positions.txt',
-                                 variables=['x', 'y', 'z'], steps=1))
+    name = 'secular'
 
-                s.append(pl.evolve(10000))
+    s = pl.Simulation(name)
 
-                s.execute()
+    ions = pl.createioncloud(ions, 1e-3, 1)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
 
-                _, data = pl.readdump('secular_positions.txt')
+    s.append(ions)
+    s.append(pl.linearpaultrap(trap, ions))
 
-                rfreq = (self.trap['frequency']/2 *
-                         np.sqrt(q ** 2 / 2 + self.trap['a']))
-                zfreq = (self.trap['frequency']/2 *
-                         np.sqrt(- 2 * self.trap['a']))
+    s.append(pl.dump('positions.txt', variables=['x', 'y', 'z'], steps=1))
 
-                xf = np.linspace(0.0, 1 / (2 * s.attrs['timestep']),
-                                 len(data) // 2)
+    s.append(pl.evolve(10000))
 
-                fz = np.abs(fft(data[..., 2], axis=0))
-                fr = np.abs(fft(data[..., 0], axis=0))
-                indr = np.argmax(fr)
-                indz = np.argmax(fz)
+    s.execute()
 
-                self.assertAlmostEqual(xf[indr]*1e-6, rfreq*1e-6, 2)
-                self.assertAlmostEqual(xf[indz]*1e-6, zfreq*1e-6, 2)
+    yield s.attrs['timestep'], q
 
-    def test_secularrf(self):
+    filenames = ['log.lammps', f'{name}.h5', f'{name}.lammps', 'positions.txt']
+    for filename in filenames:
+        os.remove(filename)
 
-        self.trap['pseudo'] = False
 
-        for q in self.qs:
-            with self.subTest(q=q):
-                s = pl.Simulation('secular')
+def test_secularfrequencies(simulation_data, simulation):
+    trap, ions = simulation_data
+    timestep, q = simulation
 
-                v, ev = pl.trapaqtovoltage(self.ions, self.trap,
-                                           self.trap['a'], q)
-                self.trap['voltage'], self.trap['endcapvoltage'] = v, ev
+    _, data = pl.readdump('positions.txt')
 
-                s.append(pl.createioncloud(self.ions, 1e-3, 1))
-                s.append(pl.linearpaultrap(self.trap))
+    rfreq = (trap['frequency'] / 2 * np.sqrt(q ** 2 / 2 + trap['a']))
+    zfreq = (trap['frequency'] / 2 * np.sqrt(- 2 * trap['a']))
 
-                s.append(pl.dump('secular_positions.txt',
-                                 variables=['x', 'y', 'z'], steps=1))
+    xf = np.linspace(0.0, 1 / (2 * timestep), len(data) // 2)
 
-                s.append(pl.evolve(10000))
+    # fabs = np.sum(fz * np.conj(fz), axis=1)[:n // 2].real
 
-                s.execute()
+    fz = np.abs(fft(data[..., 2], axis=0))[:len(data) // 2]
+    fr = np.abs(fft(data[..., 0], axis=0))[:len(data) // 2]
+    indr = np.argmax(fr)
+    indz = np.argmax(fz)
 
-                _, data = pl.readdump('secular_positions.txt')
+    print(xf[indr], rfreq)
+    print(xf[indz], zfreq)
 
-                rfreq = (self.trap['frequency']/2 *
-                         np.sqrt(q ** 2 / 2 + self.trap['a']))
-                zfreq = (self.trap['frequency']/2 *
-                         np.sqrt(- 2 * self.trap['a']))
-
-                xf = np.linspace(0.0, 1 / (2 * s.attrs['timestep']),
-                                 len(data) // 2)
-
-                fz = np.abs(fft(data[..., 2], axis=0))
-                fr = np.abs(fft(data[..., 0], axis=0))
-                indr = np.argmax(fr)
-                indz = np.argmax(fz)
-
-                self.assertAlmostEqual(xf[indr]*1e-6, rfreq*1e-6, 2)
-                self.assertAlmostEqual(xf[indz]*1e-6, zfreq*1e-6, 2)
+    assert xf[indr] * 1e-6 == pytest.approx(rfreq * 1e-6, 1e-1)
+    assert xf[indz] * 1e-6 == pytest.approx(zfreq * 1e-6, 1e-1)

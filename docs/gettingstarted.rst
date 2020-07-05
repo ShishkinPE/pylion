@@ -24,7 +24,7 @@ With lammps installed, install pylion with::
 
     python3 setup.py
 
-pylion is python3 only and has been tested with python 3.6 and the ``lammps`` 31Mar17 build.
+pylion is python3 only and has been tested with python 3.8 and the ``lammps`` 3Mar20 build.
 
 .. hint::
    Use the Anaconda python distribution that comes batteries included.

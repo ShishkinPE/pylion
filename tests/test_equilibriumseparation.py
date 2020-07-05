@@ -1,10 +1,10 @@
-import unittest
+import pytest
 import pylion as pl
 import numpy as np
 import os
 
 
-def posintheory():
+def posintheory(number):
     """"Theoretical positions of ions in a linear Paul trap when a chain
     configuration is formed. Adapted from 'Quantum
     dynamics of cold trapped ions with application to quantum computation'
@@ -26,30 +26,22 @@ def posintheory():
            [-2.8708, -2.10003, -1.4504, -0.85378, -0.2821, 0.2821, 0.85378,
             1.4504, 2.10003, 2.8708]]
 
-    return pos
+    return np.array(pos[number - 1])
 
 
-def nmintheory():
-    """"Theoretical normal modes of ions in a linear
-    paul trap when a chain configuration is formed. Adapted from 'Quantum
-    dynamics of cold trapped ions with application to quantum computation'
-    by DFV James, App. Phys. B 1998
-    """
+@pytest.fixture
+def simulation_data():
+    ions = {'mass': 40, 'charge': 1}
+    trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244,
+            'frequency': 3.85e6, 'a': -0.001}
 
-    values = [[1, 3],
-              [1, 3, 5.8],
-              [1, 3, 5.81, 9.308],
-              [1, 3, 5.818, 9.332, 13.47],
-              [1, 3, 5.824, 9.352, 13.51, 18.27],
-              [1, 3, 5.829, 9.369, 13.55, 18.32, 23.66],
-              [1, 3, 5.834, 9.383, 13.58, 18.37, 23.73, 29.63],
-              [1, 3, 5.838, 9.396, 13.6, 18.41, 23.79, 29.71, 36.16],
-              [1, 3, 5.841, 9.408, 13.63, 18.45, 23.85, 29.79, 36.26, 43.24]]
-
-    return values
+    return trap, ions
 
 
-def lengthscale(trap, ions):
+@pytest.fixture
+def lengthscale(simulation_data):
+    trap, ions = simulation_data
+
     a = trap['a']
     rf = trap['frequency']
     charge = ions['charge']
@@ -57,55 +49,52 @@ def lengthscale(trap, ions):
 
     qz = 0
     az = -2 * a
-    omega_z = 2*np.pi * rf/2 * np.sqrt(qz**2 / 2 + az)
+    omega_z = 2 * np.pi * rf / 2 * np.sqrt(qz**2 / 2 + az)
 
-    return ((charge * 1.6e-19)**2 / (4*np.pi * 8.85e-12) /
-            (mass * 1.66e-27 * omega_z**2))**(1/3)
+    return ((charge * 1.6e-19)**2 / (4 * np.pi * 8.85e-12)
+            / (mass * 1.66e-27 * omega_z**2))**(1 / 3)
 
 
-class TestPylion(unittest.TestCase):
+@pytest.fixture(params=[2, 3, 5, 7, 8])
+def simulation(simulation_data, request):
+    trap, ions = simulation_data
 
-    def setUp(self):
-        ions = {'mass': 40, 'charge': 1}
-        trap = {'radius': 3.75e-3, 'length': 2.75e-3, 'kappa': 0.244,
-                'frequency': 3.85e6, 'a': -0.001}
-        v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.3)
-        trap['voltage'], trap['endcapvoltage'] = v, ev
-        self.ions = ions
-        self.trap = trap
+    v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.3)
+    trap['voltage'], trap['endcapvoltage'] = v, ev
 
-        self.range = [2, 3, 5, 7, 8]
+    name = 'equilibrium_separation'
 
-        for number in self.range:
-            s = pl.Simulation(str(number))
+    s = pl.Simulation(name)
 
-            s.append(pl.createioncloud(ions, 1e-3, number))
-            s.append(pl.linearpaultrap(trap))
-            s.append(pl.langevinbath(3e-4, 2e-5))
-            s.append(pl.dump(f'positions{number}.txt',
-                             variables=['x', 'y', 'z']))
-            s.append(pl.evolve(3e4))
+    ions = pl.createioncloud(ions, 1e-3, request.param)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
 
-            s.execute()
+    s.append(ions)
+    s.append(pl.linearpaultrap(trap))
+    s.append(pl.langevinbath(3e-4, 2e-5))
+    s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
+    s.append(pl.evolve(3e4))
 
-    def tearDown(self):
-        # delete the generated files
-        filenames = ['log.lammps']
-        for number in self.range:
-            group = [f'positions{number}.txt', f'{number}.h5',
-                     f'{number}.lammps']
-            filenames.extend(group)
-        for filename in filenames:
-            os.remove(filename)
+    s.execute()
 
-    def test_equilibriumseparation(self):
-        for number in self.range:
-            with self.subTest(number=number):
-                _, data = pl.readdump(f'positions{number}.txt')
+    yield request.param
 
-                lscale = lengthscale(self.trap, self.ions)
-                pos = posintheory()
+    filenames = ['log.lammps', f'{name}.h5', f'{name}.lammps', 'positions.txt']
+    for filename in filenames:
+        os.remove(filename)
 
-                # test that the final position is close to the theoretical
-                for d, p in zip(data[-1, :, 2], pos[number]):
-                    self.assertAlmostEqual(d, lscale*p, 2)
+
+def test_equilibriumseparation(simulation_data, lengthscale, simulation):
+    trap, ions = simulation_data
+    lscale = lengthscale
+    number = simulation
+
+    _, data = pl.readdump('positions.txt')
+
+    # lscale = lengthscale(trap, ions)
+    pos = posintheory(number)
+
+    final_positions = np.sort(data[-1, :, 2] / lscale)
+
+    assert final_positions == pytest.approx(pos, 1e-1, 1e-1)

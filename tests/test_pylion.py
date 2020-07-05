@@ -1,161 +1,155 @@
-import unittest
+import pytest
 import pylion as pl
 from pylion.pylion import SimulationError
 import os
 
 
-class TestPylion(unittest.TestCase):
-    """Tests for pylion package."""
+@pytest.fixture
+def cleanup():
+    yield
+    for filename in ['test.h5', 'test.lammps']:
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            pass
 
-    def setUp(self):
-        """Set up test fixtures, if any."""
 
-    def tearDown(self):
-        for filename in ['test.h5', 'test.lammps']:
-            try:
-                os.remove(filename)
-            except FileNotFoundError:
-                pass
+def test_unique_id(cleanup):
 
-    def test_unique_id(self):
-        """Test unique ids."""
+    s = pl.Simulation('test')
 
-        s = pl.Simulation('test')
+    ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
+    # make sure other ions in test don't conflict with thes ones
+    ions['uid'] = 1
+    s.append(ions)
+    s.append(pl.efield(1, 1, 1))
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
-        # make sure other ions in test don't conflict with this
-        ions['uid'] = 1
-        s.append(ions)
+    # all good if I change the parameters a bit
+    s.append(pl.efield(1, 1, 1.1))
+    s._writeinputfile()
+
+    # simulation with the same uids
+    with pytest.raises(SimulationError, match="identical 'uids'"):
         s.append(pl.efield(1, 1, 1))
-
-        # all good if I change the parameters a bit
-        s.append(pl.efield(1, 1, 1.1))
         s._writeinputfile()
 
-        # all good if I change an argument
-        s.append(pl.efield(1, 1, 1))
 
-        # simulation with the same uids
-        with self.assertRaisesRegex(SimulationError, "identical 'uids'"):
-            s._writeinputfile()
+def test_noatoms(cleanup):
+    s = pl.Simulation('test')
 
-    def test_noatoms(self):
-        s = pl.Simulation('test')
+    with pytest.raises(ValueError):
+        s._writeinputfile()
 
-        with self.assertRaises(ValueError):
-            s._writeinputfile()
 
-    def test_moreatoms(self):
-        s = pl.Simulation('test')
+def test_moreatoms(cleanup):
+    s = pl.Simulation('test')
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
-        ions['uid'] = 2
-        s.append(ions)
+    ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
+    ions['uid'] = 2
+    s.append(ions)
 
-        # fails because max(uid) > number of species
-        with self.assertRaisesRegex(SimulationError, 'same ion group'):
-            s._writeinputfile()
+    # fails because max(uid) > number of species
+    with pytest.raises(SimulationError, match='same ion group'):
+        s._writeinputfile()
 
-    def test_sameuids(self):
-        s = pl.Simulation('test')
 
-        ions = pl.createioncloud({'charge': 1, 'mass':  10}, 1e-3, 10)
-        s.append(ions)
-        s.append(ions)
+def test_sameuids(cleanup):
+    s = pl.Simulation('test')
 
-        # fails because uids are the same
-        with self.assertRaisesRegex(SimulationError, "identical 'uids'"):
-            s._writeinputfile()
+    ions = pl.createioncloud({'charge': 1, 'mass': 10}, 1e-3, 10)
+    s.append(ions)
+    s.append(ions)
 
-    def test_returnsdict(self):
-        @pl.lammps.fix
-        def fixme(uid):
-            return {}
+    # fails because uids are the same
+    with pytest.raises(SimulationError, match="identical 'uids'"):
+        s._writeinputfile()
 
-        # all good here
+
+def test_returnsdict():
+    @pl.lammps.fix
+    def fixme(uid):
+        return {}
+
+    # all good here
+    fixme()
+
+    @pl.lammps.fix
+    def fixme(uid):
+        return 2
+
+    # fails because of update method on dict
+    with pytest.raises(TypeError):
         fixme()
 
-        @pl.lammps.fix
-        def fixme(uid):
-            return 2
+    @pl.lammps.fix
+    def fixme(uid):
+        return 'asdas'
 
-        # fails because of update method on dict
-        with self.subTest(1):
-            with self.assertRaises(TypeError):
-                fixme()
-
-        @pl.lammps.fix
-        def fixme(uid):
-            return 'asdas'
-
-        # fails because of update method on dict
-        with self.subTest(2):
-            with self.assertRaises(ValueError):
-                fixme()
-
-    def test_codelist(self):
-        @pl.lammps.fix
-        def fixme(uid):
-            return {'code': []}
-
-        # all good here
+    # fails because of update method on dict
+    with pytest.raises(ValueError):
         fixme()
 
-        @pl.lammps.fix
-        def fixme(uid):
-            return {'code': 'not a list'}
 
-        # fails because code is not a list
-        with self.assertRaisesRegex(TypeError, 'list of strings'):
-            fixme()
+def test_codelist():
+    @pl.lammps.fix
+    def fixme(uid):
+        return {'code': []}
 
-    def test_addnodict(self):
-        s = pl.Simulation('test')
+    # all good here
+    fixme()
 
-        notallowed = [1, [], 'string']
-        for i, item in enumerate(notallowed):
-            with self.subTest(i=i):
-                with self.assertRaisesRegex(SimulationError,
-                                            "'dicts' are allowed"):
-                    s.append(item)
+    @pl.lammps.fix
+    def fixme(uid):
+        return {'code': 'not a list'}
 
-    def test_ordering(self):
-        s = pl.Simulation('test')
-
-        priorities = [{'priority': 8}, {'priority': 2}, {'priority': 7}]
-        s.extend(priorities)
-        s.sort()
-
-        ordered = [item['priority'] == i
-                   for item, i in zip(s, [2, 7, 8])]
-        self.assertTrue(all(ordered))
-
-    def test_contains(self):
-        s = pl.Simulation('test')
-        efield = pl.efield(1, 1, 1)
-        s.append(efield)
-
-        self.assertTrue(efield in s)
-
-    def test_rigid(self):
-        s = pl.Simulation('test')
-        ions = pl.createioncloud({'charge': 3, 'mass':  10}, 1e-3, 10)
-        ions['rigid'] = True
-        s.append(ions)
-
-        ions = pl.createioncloud({'charge': 2, 'mass':  20}, 1e-3, 10)
-        ions['rigid'] = True
-        s.append(ions)
-
-        self.assertTrue(s.attrs['rigid']['exists'])
-        self.assertTrue(len(s.attrs['rigid']['groups']) == 2)
-
-    def test_variables(self):
-        # test passes even without 'variables' arg
-        @pl.lammps.variable('fix')
-        def variable(uid):
-            return {}
+    # fails because code is not a list
+    with pytest.raises(TypeError, match='list of strings'):
+        fixme()
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.parametrize('notallowed', [1, [], 'string'])
+def test_addnodict(notallowed, cleanup):
+    s = pl.Simulation('test')
+
+    with pytest.raises(SimulationError, match="'dicts' are allowed"):
+        s.append(notallowed)
+
+
+def test_ordering(cleanup):
+    s = pl.Simulation('test')
+
+    priorities = [{'priority': 8}, {'priority': 2}, {'priority': 7}]
+    s.extend(priorities)
+    s.sort()
+
+    ordered = [item['priority'] == i for item, i in zip(s, [2, 7, 8])]
+    assert all(ordered)
+
+
+def test_contains(cleanup):
+    s = pl.Simulation('test')
+    efield = pl.efield(1, 1, 1)
+    s.append(efield)
+
+    assert efield in s
+
+
+def test_rigid(cleanup):
+    s = pl.Simulation('test')
+    ions = pl.createioncloud({'charge': 3, 'mass': 10}, 1e-3, 10)
+    ions['rigid'] = True
+    s.append(ions)
+
+    ions = pl.createioncloud({'charge': 2, 'mass': 20}, 1e-3, 10)
+    ions['rigid'] = True
+    s.append(ions)
+
+    assert s.attrs['rigid']['exists']
+    assert len(s.attrs['rigid']['groups']) == 2
+
+
+def test_variables():
+    # test passes even without 'variables' arg
+    @pl.lammps.variable('fix')
+    def variable(uid):
+        return {}

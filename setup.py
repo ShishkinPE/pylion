@@ -27,10 +27,13 @@ test_requirements = [
     # TODO: put package test requirements here
 ]
 
+short_description = (
+    "A LAMMPS wrapper for molecular dynamics simulations of trapped ions.")
+
 setup(
     name='pylion',
-    version='0.3.7',
-    description="A LAMMPS wrapper for molecular dynamics simulations of trapped ions.",
+    version='0.4.0',
+    description=short_description,
     long_description=readme,
     author="Dimitris Trypogeorgos",
     author_email='dtrypogiorgos@gmail.com',

@@ -1,12 +1,11 @@
-import unittest
+import pytest
 import pylion as pl
 import numpy as np
 import os
 from numpy.fft import fft
-# from scipy.signal import find_peaks_cwt
 
 
-def nmintheory():
+def nmintheory(number):
     """"Theoretical normal modes of ions in a linear
     paul trap when a chain configuration is formed. Adapted from 'Quantum
     dynamics of cold trapped ions with application to quantum computation'
@@ -23,83 +22,88 @@ def nmintheory():
               [1, 3, 5.838, 9.396, 13.6, 18.41, 23.79, 29.71, 36.16],
               [1, 3, 5.841, 9.408, 13.63, 18.45, 23.85, 29.79, 36.26, 43.24]]
 
-    return values
+    return np.array(values[number - 1])
 
 
-class TestPylion(unittest.TestCase):
+@pytest.fixture
+def simulation_data():
+    ions = {'mass': 180, 'charge': 1}
+    trap = {'radius': 7.5e-3, 'length': 5.5e-3, 'kappa': 0.244,
+            'frequency': 3.85e6, 'a': -0.0001, 'pseudo': True}
+    v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.1)
+    trap['voltage'], trap['endcapvoltage'] = v, ev
 
-    def setUp(self):
-        ions = {'mass': 180, 'charge': 1}
-        trap = {'radius': 7.5e-3, 'length': 5.5e-3, 'kappa': 0.244,
-                'frequency': 3.85e6, 'a': -0.0001, 'pseudo': True}
-        v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.1)
-        trap['voltage'], trap['endcapvoltage'] = v, ev
-        self.trap = trap
+    return trap, ions
 
-        s = pl.Simulation('normalmodes')
 
-        s.append(pl.createioncloud(ions, 1e-3, 9))
-        pseudotrap = pl.linearpaultrap(trap, ions)
-        s.append(pseudotrap)
-        s.append(pl.minimise(0, 0, 500000, 50000, 1e-7))
+@pytest.fixture
+def simulation(simulation_data, request):
+    trap, ions = simulation_data
 
-        trap['pseudo'] = False
-        s.append(pl.linearpaultrap(trap))
+    name = 'normalmodes'
 
-        s.append(pl.dump('nm_positions.txt',
-                         variables=['x', 'y', 'z']))
+    s = pl.Simulation(name)
 
-        for _ in range(20):
-            s.append(pl.thermalvelocities(1e-5, 'no'))
-            s.append(pl.evolve(5e4))
+    number = 5
 
-        self.timestep = s.attrs['timestep']
+    ions = pl.createioncloud(ions, 1e-3, number)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
 
-        s.execute()
+    s.append(ions)
+    pseudotrap = pl.linearpaultrap(trap, ions)
+    s.append(pseudotrap)
+    s.append(pl.minimise(0, 0, 500000, 50000, 1e-7))
 
-    def tearDown(self):
-        # delete the generated files
-        for filename in ['log.lammps', 'normalmodes.h5',
-                         'normalmodes.lammps', 'nm_positions.txt']:
-            os.remove(filename)
-            pass
+    trap['pseudo'] = False
+    s.append(pl.linearpaultrap(trap))
 
-    def test_normalmodes(self):
-        # in theory
-        qz = 0
-        az = -2 * self.trap['a']
-        zfreq = self.trap['frequency'] / 2 * np.sqrt(qz**2 / 2 + np.abs(az))
+    s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
 
-        nms = nmintheory()
-        nms = np.array(nms[7])
+    for _ in range(20):
+        s.append(pl.thermalvelocities(1e-5, 'no'))
+        s.append(pl.evolve(5e4))
 
-        _, data = pl.readdump('nm_positions.txt')
-        pos = data[..., 2]
+    s.execute()
 
-        n = len(pos)
-        xf = np.linspace(0.0, 1 / (2 * 10 * self.timestep), n // 2)
+    yield s.attrs['timestep'], number
 
-        pos -= np.mean(pos, axis=0)  # subtract dc
-        fz = fft(pos, axis=0)
+    filenames = ['log.lammps', f'{name}.h5', f'{name}.lammps', 'positions.txt']
+    for filename in filenames:
+        os.remove(filename)
 
-        # # just sum everything together to find peaks
-        fabs = np.sum(fz*np.conj(fz), axis=1)[:n // 2].real
-        fabs /= np.max(fabs)  # normalise
-        fabs[fabs < 0.01] = 0  # threshold
 
-        xf_max = 2*np.sqrt(nms[-1]) * zfreq
-        lowpass = (xf < xf_max)  # lowpass filter
+@pytest.mark.slow
+def test_normalmodes(simulation_data, simulation):
+    trap, ions = simulation_data
+    timestep, number = simulation
 
-        # TODO test something without scipy
+    # in theory
+    qz = 0
+    az = -2 * trap['a']
+    zfreq = trap['frequency'] / 2 * np.sqrt(qz**2 / 2 + np.abs(az))
 
-        # peakind = find_peaks_cwt(fabs[lowpass], np.arange(10, 20))
-        # todo just get the highest peak with max and see where it lands
-        # todo make sure ffts are working
-        # todo get rid of scipy
+    nms = nmintheory(number)
 
-        # plt.plot(xf[lowpass], fabs[lowpass])
-        # plt.show()
+    _, data = pl.readdump('positions.txt')
+    pos = data[..., 2]
 
-        # for nm, x in zip(nms, xf[lowpass][peakind]):
-        #     self.assertLess(np.abs((zfreq * np.sqrt(nm) - x)) * 1e-3, 1)
-        #     # equal to within 1kHz
+    n = len(pos)
+    xf = np.linspace(0.0, 1 / (2 * 10 * timestep), n // 2)
+
+    pos -= np.mean(pos, axis=0)  # subtract dc
+    fz = fft(pos, axis=0)
+
+    # # just sum everything together to find peaks
+    fabs = np.sum(fz * np.conj(fz), axis=1)[:n // 2].real
+    fabs /= np.max(fabs)  # normalise
+    fabs[fabs < 0.01] = 0  # threshold
+
+    xf_max = 2 * np.sqrt(nms[-1]) * zfreq
+    lowpass = (xf < xf_max)  # lowpass filter
+
+    # just check for the mode with the highest amplitude
+    index = np.argmax(fabs[lowpass])
+
+    # equal to within 2kHz
+    assert min(abs(zfreq * np.sqrt(nms) - xf[index]) * 1e-3) < 2

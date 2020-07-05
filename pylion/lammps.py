@@ -39,6 +39,8 @@ class CfgObject:
 
 class Ions(CfgObject):
     # need to handle this in the class namespace
+    # I'm not sure if this is necessary for all versions of lammps
+    # If not I could handle the ions uid just like any other fix
     _ids = set()
 
     def __call__(self, *args, **kwargs):
