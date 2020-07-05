@@ -26,7 +26,7 @@ With `lammps` installed, install `pylion` with:
 ~~~
 python3 setup.py
 ~~~
-`pylion` is python 3 **only** and has been tested with python 3.6 and the `lammps` 31Mar17 build.
+`pylion` is python 3 **only** and has been tested with python 3.8 and the `lammps` 3Mar20 build, but might work with other configurations just as well.
 We suggest using the Anaconda python distribution that comes batteries included.
 To make the documentation use `make html` in the documentation folder.
 
@@ -59,7 +59,8 @@ Look into the `examples` and `tests` folders for more ideas.
 
 ## Tests
 
-Run all autodiscovered tests with `python -m unittest` will take a few minutes.
+Run all autodiscovered tests with `pytest` will take a few minutes.
+If you don't want to wait that much use `pytest -m 'not slow'`.
 The `tests/test_pylion.py` is for implementation details. You can run this only while developing which will be much faster.
 The other tests are slower because they test for correct physics and have to run a bunch of simulations.
 
@@ -80,11 +81,13 @@ Go to the docs folder folder and run `make html` or whatever format you prefer.
 
 *   Simulate multiple ion species in the same trap.
 
-*   Use multiple trap driving frequencies. See [Phys. Rev. A 94, 02360](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
+*   Use multiple trap driving frequencies. See [Phys. Rev. A 94, 023609](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609) for details.
 
 *   Define rigid bodies from groups of ions to simulate mesoscopic charged objects.
 
 If you find this software useful in your research please cite:
+
+E. Bentine et al., [Computer Physics Communications, 253, 107187, (2020)](http://www.sciencedirect.com/science/article/pii/S0010465520300369)
 
 D. Trypogeorgos et al., [Phys. Rev. A 94, 023609, (2016)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.94.023609)
 

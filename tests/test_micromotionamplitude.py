@@ -41,6 +41,7 @@ def simulation(simulation_data):
         os.remove(filename)
 
 
+@pytest.mark.slow
 def test_micromotion(simulation):
     _, data = pl.readdump('positions.txt')
 

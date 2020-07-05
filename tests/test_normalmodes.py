@@ -73,7 +73,6 @@ def simulation(simulation_data, request):
         os.remove(filename)
 
 
-# TODO need to register the slow marker before I can use it
 @pytest.mark.slow
 def test_normalmodes(simulation_data, simulation):
     trap, ions = simulation_data
