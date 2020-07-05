@@ -66,7 +66,11 @@ def simulation(simulation_data, request):
 
     s = pl.Simulation(name)
 
-    s.append(pl.createioncloud(ions, 1e-3, request.param))
+    ions = pl.createioncloud(ions, 1e-3, request.param)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
+
+    s.append(ions)
     s.append(pl.linearpaultrap(trap))
     s.append(pl.langevinbath(3e-4, 2e-5))
     s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))

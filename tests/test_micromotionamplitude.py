@@ -21,7 +21,11 @@ def simulation(simulation_data):
 
     s = pl.Simulation(name)
 
-    s.append(pl.createioncloud(ions, 1e-3, 500))
+    ions = pl.createioncloud(ions, 1e-3, 500)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
+
+    s.append(ions)
     s.append(pl.linearpaultrap(trap))
     s.append(pl.langevinbath(0, 1e-6))
 

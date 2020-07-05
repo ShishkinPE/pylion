@@ -46,7 +46,11 @@ def simulation(simulation_data, request):
 
     number = 5
 
-    s.append(pl.createioncloud(ions, 1e-3, number))
+    ions = pl.createioncloud(ions, 1e-3, number)
+    # explicitly define uids so that the test suite is happy
+    ions['uid'] = 1
+
+    s.append(ions)
     pseudotrap = pl.linearpaultrap(trap, ions)
     s.append(pseudotrap)
     s.append(pl.minimise(0, 0, 500000, 50000, 1e-7))
