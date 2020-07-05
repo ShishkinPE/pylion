@@ -32,7 +32,7 @@ short_description = (
 
 setup(
     name='pylion',
-    version='0.3.7',
+    version='0.4.0',
     description=short_description,
     long_description=readme,
     author="Dimitris Trypogeorgos",
