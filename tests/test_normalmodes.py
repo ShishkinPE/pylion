@@ -1,9 +1,8 @@
-import unittest
+import pytest
 import pylion as pl
 import numpy as np
 import os
 from numpy.fft import fft
-# from scipy.signal import find_peaks_cwt
 
 
 def nmintheory(number):
@@ -26,80 +25,82 @@ def nmintheory(number):
     return np.array(values[number - 1])
 
 
-class TestPylion(unittest.TestCase):
+@pytest.fixture
+def simulation_data():
+    ions = {'mass': 180, 'charge': 1}
+    trap = {'radius': 7.5e-3, 'length': 5.5e-3, 'kappa': 0.244,
+            'frequency': 3.85e6, 'a': -0.0001, 'pseudo': True}
+    v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.1)
+    trap['voltage'], trap['endcapvoltage'] = v, ev
 
-    def setUp(self):
-        ions = {'mass': 180, 'charge': 1}
-        trap = {'radius': 7.5e-3, 'length': 5.5e-3, 'kappa': 0.244,
-                'frequency': 3.85e6, 'a': -0.0001, 'pseudo': True}
-        v, ev = pl.trapaqtovoltage(ions, trap, trap['a'], 0.1)
-        trap['voltage'], trap['endcapvoltage'] = v, ev
-        self.trap = trap
+    return trap, ions
 
-        s = pl.Simulation('normalmodes')
 
-        s.append(pl.createioncloud(ions, 1e-3, 9))
-        pseudotrap = pl.linearpaultrap(trap, ions)
-        s.append(pseudotrap)
-        s.append(pl.minimise(0, 0, 500000, 50000, 1e-7))
+@pytest.fixture
+def simulation(simulation_data, request):
+    trap, ions = simulation_data
 
-        trap['pseudo'] = False
-        s.append(pl.linearpaultrap(trap))
+    name = 'normalmodes'
 
-        s.append(pl.dump('nm_positions.txt',
-                         variables=['x', 'y', 'z']))
+    s = pl.Simulation(name)
 
-        for _ in range(20):
-            s.append(pl.thermalvelocities(1e-5, 'no'))
-            s.append(pl.evolve(5e4))
+    number = 5
 
-        self.timestep = s.attrs['timestep']
+    s.append(pl.createioncloud(ions, 1e-3, number))
+    pseudotrap = pl.linearpaultrap(trap, ions)
+    s.append(pseudotrap)
+    s.append(pl.minimise(0, 0, 500000, 50000, 1e-7))
 
-        s.execute()
+    trap['pseudo'] = False
+    s.append(pl.linearpaultrap(trap))
 
-    def tearDown(self):
-        # delete the generated files
-        for filename in ['log.lammps', 'normalmodes.h5',
-                         'normalmodes.lammps', 'nm_positions.txt']:
-            os.remove(filename)
-            pass
+    s.append(pl.dump('positions.txt', variables=['x', 'y', 'z']))
 
-    def test_normalmodes(self):
-        # in theory
-        qz = 0
-        az = -2 * self.trap['a']
-        zfreq = self.trap['frequency'] / 2 * np.sqrt(qz**2 / 2 + np.abs(az))
+    for _ in range(20):
+        s.append(pl.thermalvelocities(1e-5, 'no'))
+        s.append(pl.evolve(5e4))
 
-        nms = nmintheory()
-        nms = np.array(nms[7])
+    s.execute()
 
-        _, data = pl.readdump('nm_positions.txt')
-        pos = data[..., 2]
+    yield s.attrs['timestep'], number
 
-        n = len(pos)
-        xf = np.linspace(0.0, 1 / (2 * 10 * self.timestep), n // 2)
+    filenames = ['log.lammps', f'{name}.h5', f'{name}.lammps', 'positions.txt']
+    for filename in filenames:
+        os.remove(filename)
 
-        pos -= np.mean(pos, axis=0)  # subtract dc
-        fz = fft(pos, axis=0)
 
-        # # just sum everything together to find peaks
-        fabs = np.sum(fz * np.conj(fz), axis=1)[:n // 2].real
-        fabs /= np.max(fabs)  # normalise
-        fabs[fabs < 0.01] = 0  # threshold
+# TODO need to register the slow marker before I can use it
+@pytest.mark.slow
+def test_normalmodes(simulation_data, simulation):
+    trap, ions = simulation_data
+    timestep, number = simulation
 
-        xf_max = 2 * np.sqrt(nms[-1]) * zfreq
-        lowpass = (xf < xf_max)  # lowpass filter
+    # in theory
+    qz = 0
+    az = -2 * trap['a']
+    zfreq = trap['frequency'] / 2 * np.sqrt(qz**2 / 2 + np.abs(az))
 
-        # TODO test something without scipy
+    nms = nmintheory(number)
 
-        # peakind = find_peaks_cwt(fabs[lowpass], np.arange(10, 20))
-        # todo just get the highest peak with max and see where it lands
-        # todo make sure ffts are working
-        # todo get rid of scipy
+    _, data = pl.readdump('positions.txt')
+    pos = data[..., 2]
 
-        # plt.plot(xf[lowpass], fabs[lowpass])
-        # plt.show()
+    n = len(pos)
+    xf = np.linspace(0.0, 1 / (2 * 10 * timestep), n // 2)
 
-        # for nm, x in zip(nms, xf[lowpass][peakind]):
-        #     self.assertLess(np.abs((zfreq * np.sqrt(nm) - x)) * 1e-3, 1)
-        #     # equal to within 1kHz
+    pos -= np.mean(pos, axis=0)  # subtract dc
+    fz = fft(pos, axis=0)
+
+    # # just sum everything together to find peaks
+    fabs = np.sum(fz * np.conj(fz), axis=1)[:n // 2].real
+    fabs /= np.max(fabs)  # normalise
+    fabs[fabs < 0.01] = 0  # threshold
+
+    xf_max = 2 * np.sqrt(nms[-1]) * zfreq
+    lowpass = (xf < xf_max)  # lowpass filter
+
+    # just check for the mode with the highest amplitude
+    index = np.argmax(fabs[lowpass])
+
+    # equal to within 2kHz
+    assert min(abs(zfreq * np.sqrt(nms) - xf[index]) * 1e-3) < 2
