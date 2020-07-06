@@ -2,18 +2,19 @@ import h5py
 import signal
 import jinja2 as j2
 import json
-import inspect
 from datetime import datetime
 from collections import defaultdict
 import sys
 import time
+
+from .utils import save_atttributes_and_files
 
 if 'win32' in sys.platform:
     import wexpect as pexpect
 else:
     import pexpect
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 
 class SimulationError(Exception):
@@ -57,9 +58,9 @@ class Simulation(list):
         self.attrs['version'] = __version__
         self.attrs['rigid'] = {'exists': False}
 
-        # initalise the h5 file
-        with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
-            pass
+        # # initalise the h5 file
+        # with h5py.File(self.attrs['name'] + '.h5', 'w') as f:
+        #     pass
 
     def __contains__(self, this):
         """Check if an item exists in the simulation using its ``uid``.
@@ -168,31 +169,25 @@ class Simulation(list):
         with open(self.attrs['name'] + '.lammps', 'w') as f:
             f.write(rendered)
 
-        # get a few more attrs
+        # get a few more attrs now that the lammps file is written
+        # - simulation time
         self.attrs['time'] = datetime.now().isoformat()
 
-        # and the name of the output files
+        # - names of the output files
         fixes = filter(lambda item: item.get('type') == 'fix',
                        odict['simulation'])
         self.attrs['output_files'] = [line.split()[5] for fix in fixes
                                       for line in fix['code']
                                       if line.startswith('dump')]
 
-        # save attrs and scripts to h5 file
-        self.attrs.save(self.attrs['name'] + '.h5')
-        self._savecallersource()
-        self._savescriptsource(self.attrs['name'] + '.lammps')
-
-        # give it some time to write everything to the h5 file
-        time.sleep(0.5)
-
+    @save_atttributes_and_files
     def execute(self):
         """Write lammps input file and run the simulation.
         """
 
         if getattr(self, '_hasexecuted', False):
-            print('Simulation has executed already. Do not run it again.')
-            return
+            raise SimulationError(
+                'Simulation has executed already. Do not run it again.')
 
         self._writeinputfile()
 
@@ -212,9 +207,6 @@ class Simulation(list):
 
         self._hasexecuted = True
 
-        for filename in self.attrs['output_files'] + ['log.lammps']:
-            self._savescriptsource(filename)
-
     def _process_stdout(self, child):
         atoms = 0
         for line in child:
@@ -233,23 +225,3 @@ class Simulation(list):
                 continue
 
             print(line)
-
-    def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5', 'a') as f:
-            with open(script, 'rb') as pf:
-                lines = pf.readlines()
-                f.create_dataset(script, data=lines)
-
-    def _savecallersource(self):
-        # inspect the first four frames of the stack to find the correct
-        # filename. This covers calling from execute() or _writeinputfile().
-        # if the stack is indeed larger than this it's probably the REPL.
-        stack = inspect.stack()[:4]
-        for frame in stack:
-            if sys.argv[0] == frame.filename:
-                self._savescriptsource(frame.filename)
-                return
-
-        # cannot save on the h5 file if using the repl
-        print('Caller source not saved. '
-              'Are you running the simulation from the repl?')
