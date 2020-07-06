@@ -1,10 +1,10 @@
 import inspect
 import os
-from termcolor import colored
-import functools
-import h5py
 import sys
 import warnings
+import functools
+import h5py
+from termcolor import colored
 
 
 def pretty_repr(_cls):

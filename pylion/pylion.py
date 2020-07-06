@@ -2,7 +2,6 @@ import h5py
 import signal
 import jinja2 as j2
 import json
-import inspect
 from datetime import datetime
 from collections import defaultdict
 import sys
