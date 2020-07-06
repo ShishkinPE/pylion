@@ -7,6 +7,7 @@ from datetime import datetime
 from collections import defaultdict
 import sys
 import time
+import warnings
 
 if 'win32' in sys.platform:
     import wexpect as pexpect
@@ -180,19 +181,21 @@ class Simulation(list):
 
         # save attrs and scripts to h5 file
         self.attrs.save(self.attrs['name'] + '.h5')
-        self._savecallersource()
-        self._savescriptsource(self.attrs['name'] + '.lammps')
+        _savecallersource(self.attrs['name'] + '.h5')
+        _savescriptsource(self.attrs['name'] + '.h5',
+                          self.attrs['name'] + '.lammps')
 
         # give it some time to write everything to the h5 file
-        time.sleep(0.5)
+        # time.sleep(0.5)
 
+    # TODO put a @save_to_h5() decorator here
     def execute(self):
         """Write lammps input file and run the simulation.
         """
 
         if getattr(self, '_hasexecuted', False):
-            print('Simulation has executed already. Do not run it again.')
-            return
+            raise SimulationError(
+                'Simulation has executed already. Do not run it again.')
 
         self._writeinputfile()
 
@@ -213,7 +216,7 @@ class Simulation(list):
         self._hasexecuted = True
 
         for filename in self.attrs['output_files'] + ['log.lammps']:
-            self._savescriptsource(filename)
+            _savescriptsource(self.attrs['name'] + '.h5', filename)
 
     def _process_stdout(self, child):
         atoms = 0
@@ -234,22 +237,25 @@ class Simulation(list):
 
             print(line)
 
-    def _savescriptsource(self, script):
-        with h5py.File(self.attrs['name'] + '.h5', 'a') as f:
-            with open(script, 'rb') as pf:
-                lines = pf.readlines()
-                f.create_dataset(script, data=lines)
 
-    def _savecallersource(self):
-        # inspect the first four frames of the stack to find the correct
-        # filename. This covers calling from execute() or _writeinputfile().
-        # if the stack is indeed larger than this it's probably the REPL.
-        stack = inspect.stack()[:4]
-        for frame in stack:
-            if sys.argv[0] == frame.filename:
-                self._savescriptsource(frame.filename)
-                return
+def _savescriptsource(h5file, script):
+    with h5py.File(h5file, 'a') as f:
+        with open(script, 'rb') as pf:
+            lines = pf.readlines()
+            f.create_dataset(script, data=lines)
 
-        # cannot save on the h5 file if using the repl
-        print('Caller source not saved. '
-              'Are you running the simulation from the repl?')
+
+def _savecallersource(h5file):
+    # inspect the first four frames of the stack to find the correct
+    # filename. This covers calling from execute() or _writeinputfile().
+    # if the stack is indeed larger than this it's probably the REPL.
+    stack = inspect.stack()[:4]
+    for frame in stack:
+        if sys.argv[0] == frame.filename:
+            _savescriptsource(h5file, frame.filename)
+            return
+
+    # cannot save on the h5 file if using the repl
+    warnings.warn(
+        'Caller source not saved. '
+        'Are you running the simulation from the REPL?')
