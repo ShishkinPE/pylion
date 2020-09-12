@@ -38,6 +38,7 @@ setup(
     author="Dimitris Trypogeorgos",
     author_email='dtrypogiorgos@gmail.com',
     packages=find_packages(include=['pylion']),
+    package_data={'pylion': ['templates/*j2']},
     include_package_data=True,
     install_requires=requirements,
     license="MIT license",
