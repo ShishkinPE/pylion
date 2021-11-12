@@ -206,17 +206,14 @@ def lasercool(uid, ions, k):
     """
 
     kx, ky, kz = k
-    iid = ions['uid']
 
     lines = ['\n# Define laser cooling for a particular atom species.',
-             f'group {uid} type {iid}',
-             f'variable kx{uid}\t\tequal {kx:e}',
-             f'variable ky{uid}\t\tequal {ky:e}',
-             f'variable kz{uid}\t\tequal {kz:e}',
-             f'variable fX{uid} atom "-v_kx{uid} * vx"',
-             f'variable fY{uid} atom "-v_ky{uid} * vy"',
-             f'variable fZ{uid} atom "-v_kz{uid} * vz"',
-             f'fix {uid} {uid} addforce v_fX{uid} v_fY{uid} v_fZ{uid}\n']
+             f'group {uid} type grp_{uid}',
+             f'variable vel_{uid} atom "1.000000e+00 * vx + 0.000000e+00 * vy + 0.000000e+00 * vz"',
+             f'variable fX{uid} atom "-v_vel_{uid} * mass * {kx}"',
+             f'variable fY{uid} atom "-v_vel_{uid} * mass * {ky}"',
+             f'variable fZ{uid} atom "-v_vel_{uid} * mass * {kz}"',
+             f'fix {uid} grp_{uid} addforce v_fX{uid} v_fY{uid} v_fZ{uid}\n']
 
     return {'code': lines}
 
