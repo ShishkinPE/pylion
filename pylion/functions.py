@@ -205,15 +205,17 @@ def lasercool(uid, ions, k):
     :param k: (kx, ky, kz) laser wavevector
     """
 
-    kx, ky, kz = k
+    force = np.linalg.norm(k)
+    kx, ky, kz = np.array(k) / force
+    gid = ions["uid"]
 
     lines = ['\n# Define laser cooling for a particular atom species.',
-             f'group {uid} type grp_{uid}',
-             f'variable vel_{uid} atom "1.000000e+00 * vx + 0.000000e+00 * vy + 0.000000e+00 * vz"',
-             f'variable fX{uid} atom "-v_vel_{uid} * mass * {kx}"',
-             f'variable fY{uid} atom "-v_vel_{uid} * mass * {ky}"',
-             f'variable fZ{uid} atom "-v_vel_{uid} * mass * {kz}"',
-             f'fix {uid} grp_{uid} addforce v_fX{uid} v_fY{uid} v_fZ{uid}\n']
+             f'group {uid} type {gid}',
+             f'variable vel_{uid} atom "{kx} * vx + {ky} * vy + {kz} * vz"',
+             f'variable fX{uid} atom "-v_vel_{uid} * mass * {kx * force}"',
+             f'variable fY{uid} atom "-v_vel_{uid} * mass * {ky * force}"',
+             f'variable fZ{uid} atom "-v_vel_{uid} * mass * {kz * force}"',
+             f'fix {uid} {gid} addforce v_fX{uid} v_fY{uid} v_fZ{uid}\n']
 
     return {'code': lines}
 
