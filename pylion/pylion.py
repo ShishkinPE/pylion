@@ -14,7 +14,7 @@ if 'win32' in sys.platform:
 else:
     import pexpect
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 
 class SimulationError(Exception):
