@@ -152,13 +152,13 @@ class Simulation(list):
                 " cases, 'lammps' is probably not going to like it.")
 
         # make sure species will behave
-        #maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
-        #if maxuid > len(odict['species']):
-        #    raise SimulationError(
-        #        f"Max 'uid' of species={maxuid} is larger than the number "
-        #        f"of species={len(odict['species'])}. "
-        #        "Calling '@lammps.ions' decorated functions increments the "
-        #        "'uid' count unless it is for the same ion group.")
+        maxuid = max(odict['species'], key=lambda item: item['uid'])['uid']
+        if maxuid > len(odict['species']):
+            raise SimulationError(
+                f"Max 'uid' of species={maxuid} is larger than the number "
+                f"of species={len(odict['species'])}. "
+                "Calling '@lammps.ions' decorated functions increments the "
+                "'uid' count unless it is for the same ion group.")
 
         # load jinja2 template
         env = j2.Environment(loader=j2.PackageLoader('pylion', 'templates'),
